@@ -1,162 +1,28 @@
 {
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
-  "description": "Sidebar listing Claude Code sessions grouped by project, with live status and one-click launch/resume.",
-  "version": "0.1.0",
+  "description": "One status bar button that opens `claude agents` in the current project's folder, as a pinned terminal tab.",
+  "version": "0.2.2",
   "publisher": "local",
   "private": true,
   "engines": {
     "vscode": "^1.93.0"
   },
   "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "claudeLauncher.newAgent",
-        "title": "Claude: New Agent Here",
+        "command": "claudeLauncher.openAgents",
+        "title": "Claude: Open Agents",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "claudeLauncher.newAgentsTab",
+        "title": "Claude: New Agents Tab",
         "icon": "$(add)"
-      },
-      {
-        "command": "claudeLauncher.openAgent",
-        "title": "Claude: Open Agent",
-        "icon": "$(play)"
-      },
-      {
-        "command": "claudeLauncher.rename",
-        "title": "Claude: Rename",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "claudeLauncher.stopAgent",
-        "title": "Claude: Stop Agent",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "claudeLauncher.takeOver",
-        "title": "Claude: Take Over Background Agent",
-        "icon": "$(arrow-swap)"
-      },
-      {
-        "command": "claudeLauncher.deleteAgent",
-        "title": "Claude: Delete Agent",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "claudeLauncher.setColor",
-        "title": "Claude: Set Color...",
-        "icon": "$(symbol-color)"
-      },
-      {
-        "command": "claudeLauncher.setAvatar",
-        "title": "Claude: Set Picture...",
-        "icon": "$(account)"
-      },
-      {
-        "command": "claudeLauncher.refresh",
-        "title": "Claude: Refresh Agent List",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "claudeLauncher.scopeShowAll",
-        "title": "Claude: Show All Projects",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "claudeLauncher.scopeShowCurrent",
-        "title": "Claude: Show Current Project Only",
-        "icon": "$(root-folder)"
       }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "claudeLauncher",
-          "title": "Claude",
-          "icon": "media/claude-icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "claudeLauncher": [
-        {
-          "id": "claudeLauncher.agents",
-          "name": "Agents",
-          "icon": "media/claude-icon.svg",
-          "contextualTitle": "Claude"
-        }
-      ]
-    },
-    "menus": {
-      "view/title": [
-        {
-          "command": "claudeLauncher.scopeShowAll",
-          "when": "view == claudeLauncher.agents && !config.claudeLauncher.showAllProjects",
-          "group": "navigation@0"
-        },
-        {
-          "command": "claudeLauncher.scopeShowCurrent",
-          "when": "view == claudeLauncher.agents && config.claudeLauncher.showAllProjects",
-          "group": "navigation@0"
-        },
-        {
-          "command": "claudeLauncher.newAgent",
-          "when": "view == claudeLauncher.agents",
-          "group": "navigation@1"
-        },
-        {
-          "command": "claudeLauncher.refresh",
-          "when": "view == claudeLauncher.agents",
-          "group": "navigation@2"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "claudeLauncher.rename",
-          "when": "view == claudeLauncher.agents && viewItem =~ /^(agent|group)/",
-          "group": "inline@1"
-        },
-        {
-          "command": "claudeLauncher.stopAgent",
-          "when": "view == claudeLauncher.agents && viewItem == agent-running",
-          "group": "inline@2"
-        },
-        {
-          "command": "claudeLauncher.takeOver",
-          "when": "view == claudeLauncher.agents && viewItem == agent-running",
-          "group": "1_modify"
-        },
-        {
-          "command": "claudeLauncher.newAgent",
-          "when": "view == claudeLauncher.agents && viewItem == group",
-          "group": "inline@3"
-        },
-        {
-          "command": "claudeLauncher.setColor",
-          "when": "view == claudeLauncher.agents && viewItem =~ /^(agent|group)/",
-          "group": "2_appearance@1"
-        },
-        {
-          "command": "claudeLauncher.setAvatar",
-          "when": "view == claudeLauncher.agents && viewItem =~ /^(agent|group)/",
-          "group": "2_appearance@2"
-        },
-        {
-          "command": "claudeLauncher.deleteAgent",
-          "when": "view == claudeLauncher.agents && viewItem =~ /^agent/",
-          "group": "1_modify"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "Claude Agents",
-      "properties": {
-        "claudeLauncher.showAllProjects": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show Claude sessions from every project. When off (default), only sessions whose folder is part of the current workspace are shown — agents you've manually dragged into a custom group are always shown regardless."
-        }
-      }
-    }
+    ]
   }
 }
