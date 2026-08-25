@@ -1,0 +1,42 @@
+.vscode/launch.json
+  h_08eca7ecc4bc75 1-11
+.vscodeignore
+  h_08eca7ecc4bc75 1-3
+README.md
+  h_08eca7ecc4bc75 1-54
+extension.js
+  h_08eca7ecc4bc75 1-316
+media/claude-icon-color.svg
+  h_08eca7ecc4bc75 1-7
+media/claude-icon.svg
+  h_08eca7ecc4bc75 1-5
+package.json
+  h_08eca7ecc4bc75 1-162
+src/avatars.js
+  h_08eca7ecc4bc75 1-37
+src/colors.js
+  h_08eca7ecc4bc75 1-26
+src/decorations.js
+  h_08eca7ecc4bc75 1-35
+src/state.js
+  h_08eca7ecc4bc75 1-182
+src/store.js
+  h_08eca7ecc4bc75 1-239
+src/terminals.js
+  h_08eca7ecc4bc75 1-233
+src/tree.js
+  h_08eca7ecc4bc75 1-208
+src/watch.js
+  h_08eca7ecc4bc75 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "d19ac2f1dec72c8a8feda7857de9bf407837fc28",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
