@@ -1,6 +1,8 @@
 .vscode/**
 .vscodeignore
 .gitignore
+.env
+.env.*
 .github/**
 *.vsix
 readme-assets/**

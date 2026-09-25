@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.2]
+
+### Changed
+- README rewritten as a landing page: why it exists, what it does, and a 30-second install from the
+  VS Code Marketplace.
+- Tagged releases now publish to the VS Code Marketplace automatically, alongside the GitHub Release.
+
+### Fixed
+- Replaced the retired Marketplace badges in the README with ones that render.
+
 ## [0.4.1]
 
 ### Added
