@@ -1,0 +1,19 @@
+package.json
+  s_bfc161c020507d::t_3cf3397b06b751 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d85a10781292e77d45c0b75dbe9eebd2156d2adf",
+  "prompts": {},
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
