@@ -2,7 +2,7 @@
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
@@ -28,6 +28,18 @@
         "icon": "$(add)"
       }
     ],
+    "keybindings": [
+      {
+        "command": "claudeLauncher.openAgents",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      },
+      {
+        "command": "claudeLauncher.newAgentsTab",
+        "key": "ctrl+alt+shift+a",
+        "mac": "cmd+alt+shift+a"
+      }
+    ],
     "configuration": {
       "title": "Claude Agents",
       "properties": {
@@ -51,9 +63,24 @@
               "configDir": {
                 "type": "string",
                 "description": "Value for CLAUDE_CONFIG_DIR, e.g. ~/.claude-work. Leave empty for the default ~/.claude."
+              },
+              "color": {
+                "type": "string",
+                "enum": ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"],
+                "description": "Tints this profile's status bar button and terminal tab, using your theme's terminal colors."
               }
             }
           }
+        },
+        "claudeLauncher.defaultProfile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Name of the profile this workspace uses. When set, only that profile's button is shown, and the keyboard shortcut and commands use it without asking. Set it in **Workspace** settings, e.g. `Work` for work repos."
+        },
+        "claudeLauncher.openOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Open the agents tab automatically when a window opens. Needs a single-folder workspace and a profile it can pick without asking: `#claudeLauncher.defaultProfile#`, or your only profile."
         }
       }
     }

@@ -3,6 +3,21 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0]
+
+### Added
+- Keyboard shortcuts: `⌘⌥A` / `Ctrl+Alt+A` opens or focuses your agents, `⌘⌥⇧A` /
+  `Ctrl+Alt+Shift+A` opens a new tab. Custom keybindings can target a profile with
+  `"args": { "name": "Work" }`.
+- `claudeLauncher.defaultProfile`: pin a workspace to one profile. Only its button shows, and
+  shortcuts and commands use it without asking.
+- Per-profile `color` that tints the status bar button and the terminal tab.
+- `claudeLauncher.openOnStartup`: open the agents tab automatically when a window opens.
+
+### Fixed
+- After a window reload, clicking a profile's button focuses the tab VS Code restored instead of
+  opening a duplicate.
+
 ## [0.4.2]
 
 ### Changed
