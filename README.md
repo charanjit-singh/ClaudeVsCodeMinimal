@@ -17,6 +17,18 @@ right inside your editor. No sidebar, no setup, no clutter.
 
 ---
 
+## Why I built this
+
+Moving from Cursor to Claude Code was a brain slap. In Cursor, chats lived right next to my code:
+I opened one, did the work, came back to it later. With Claude Code, I was juggling terminals and
+losing track of which session belonged to which project.
+
+So I built the thing I was missing. Claude's agent view now sits one click away in every project.
+**I treat each agent like a chat:** start one per task, come back to it later, and each project keeps
+its own set. It feels like Cursor's chat panel, but it's running Claude Code.
+
+---
+
 ## Why you'll like it
 
 **⚡ One click, you're in.**
@@ -97,6 +109,15 @@ The first time you launch a new profile, sign in once and you're done.
 
 > ⚠️ With permissions skipped, agents can edit files and run commands without asking first.
 > That's great for momentum, but only use it on projects where you're comfortable with that.
+
+---
+
+## Pairs well with: Sync Code Theme
+
+Working on several projects at once? Install
+[**sync-code-theme**](https://github.com/charanjit-singh/claude-plugins#sync-code-theme), a Claude Code
+plugin that tints each VS Code window with its project's own brand colors. Combined with Claude Agents,
+you can tell at a glance which window, and which agents, belong to which project.
 
 ---
 
