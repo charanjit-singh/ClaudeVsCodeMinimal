@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0]
+
+### Added
+- **Claude: Set Project Profile** picks which profile the current project uses and saves it to the
+  project's workspace settings. **All profiles** switches back to showing every button. It's also
+  available from Manage Profiles, from a **Project profile** link when you hover a button, and from
+  the setting's description.
+- README section on per-project JSON overrides: what goes in User vs Workspace settings, and how they
+  combine.
+
+### Security
+- Until you trust a folder, its own `.vscode/settings.json` can no longer change `profiles`,
+  `dangerouslySkipPermissions`, or `openOnStartup`, and `openOnStartup` never fires there. Before
+  this, a cloned repo could auto-launch an agent with permissions skipped, or point a profile's
+  `configDir` at a folder inside the repo, which Claude would load hooks from.
+
 ## [0.6.0]
 
 ### Added

@@ -2,7 +2,7 @@
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
@@ -14,6 +14,17 @@
   },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In untrusted folders, the folder's own settings can't change your profiles, skip permissions, or auto-open agents.",
+      "restrictedConfigurations": [
+        "claudeLauncher.profiles",
+        "claudeLauncher.dangerouslySkipPermissions",
+        "claudeLauncher.openOnStartup"
+      ]
+    }
+  },
   "main": "./extension.js",
   "contributes": {
     "commands": [
@@ -26,6 +37,11 @@
         "command": "claudeLauncher.newAgentsTab",
         "title": "Claude: New Agents Tab",
         "icon": "$(add)"
+      },
+      {
+        "command": "claudeLauncher.setProjectProfile",
+        "title": "Claude: Set Project Profile",
+        "icon": "$(pinned)"
       },
       {
         "command": "claudeLauncher.manageProfiles",
@@ -80,7 +96,7 @@
         "claudeLauncher.defaultProfile": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Name of the profile this workspace uses. When set, only that profile's button is shown, and the keyboard shortcut and commands use it without asking. Set it in **Workspace** settings, e.g. `Work` for work repos."
+          "markdownDescription": "Name of the profile this workspace uses. When set, only that profile's button is shown, and the keyboard shortcut and commands use it without asking. **[Pick one for this project](command:claudeLauncher.setProjectProfile)**, or set it in **Workspace** settings, e.g. `Work` for work repos."
         },
         "claudeLauncher.openOnStartup": {
           "type": "boolean",

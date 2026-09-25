@@ -107,14 +107,53 @@ The first time you launch a new profile, sign in once and you're done.
 
 ### Pin a project to one profile
 
-In a work repo, open **Workspace** settings (`.vscode/settings.json`) and add:
+Open the project, run **Claude: Set Project Profile** (or hover a button → **Project profile**), and
+pick one. That window then shows only that profile's button, and the keyboard shortcut opens it
+without asking. Pick **All profiles** to go back to showing every button.
+
+Your choice is saved in the project's `.vscode/settings.json`, so it follows the repo. Commit that
+file and anyone who shares your profile names gets the same setup.
+
+---
+
+## Per-project overrides in JSON
+
+VS Code reads settings in two layers: your **User** settings apply everywhere, and **Workspace**
+settings (`.vscode/settings.json` in the project) override them for that project. Every Claude
+Agents setting works at both levels.
+
+Put your accounts in **User** settings once (**Preferences: Open User Settings (JSON)**):
 
 ```jsonc
-"claudeLauncher.defaultProfile": "Work"
+{
+  "claudeLauncher.profiles": [
+    { "name": "Personal", "color": "blue" },
+    { "name": "Work", "configDir": "~/.claude-work", "color": "magenta" }
+  ]
+}
 ```
 
-Now that window shows only the **Work** button, and the keyboard shortcut opens Work agents without
-asking which profile you meant.
+Then override per project in `.vscode/settings.json` (**Preferences: Open Workspace Settings (JSON)**):
+
+```jsonc
+{
+  "claudeLauncher.defaultProfile": "Work",           // only the Work button, no questions
+  "claudeLauncher.openOnStartup": true,              // agents open when this repo opens
+  "claudeLauncher.dangerouslySkipPermissions": false // ask before acting, in this repo only
+}
+```
+
+Worth knowing:
+
+- **A workspace `profiles` list replaces yours; it doesn't merge.** If you set `claudeLauncher.profiles`
+  in a project, that project sees only those profiles. Usually `defaultProfile` is all you need.
+- **To show every button where your User settings pin one,** set `"claudeLauncher.defaultProfile": ""`
+  in the project. **Set Project Profile → All profiles** does this for you.
+- **In a multi-root workspace,** workspace settings live in the `.code-workspace` file instead.
+- **Untrusted folders can't change the risky settings.** Until you trust a folder, its own settings
+  can't change `profiles`, `dangerouslySkipPermissions`, or `openOnStartup`, and agents never open
+  automatically there. A repo you just cloned can't make itself launch an agent or point Claude at
+  its own config folder.
 
 ---
 
@@ -125,6 +164,7 @@ asking which profile you meant.
 | Open or jump back to your agents | Click the profile's button, or press `⌘⌥A` / `Ctrl+Alt+A` |
 | Open a second, separate agents tab | `⌘⌥⇧A` / `Ctrl+Alt+Shift+A`, or **Claude: New Agents Tab** |
 | Give each account its own shortcut | Add a keybinding for `claudeLauncher.openAgents` with `"args": { "name": "Work" }` |
+| Use one account in this project | **Claude: Set Project Profile**, or hover a button → **Project profile** |
 | Have agents open when you open a project | Turn on `claudeLauncher.openOnStartup` |
 | Approve each action yourself | Set `claudeLauncher.dangerouslySkipPermissions` to `false` |
 | Add an account, or change a color | **Claude: Manage Profiles**, or hover a button → **Manage profiles** |
@@ -138,7 +178,7 @@ Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by sea
 | Setting | Default | What it does |
 |---|---|---|
 | `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. Easiest to edit with **Claude: Manage Profiles**. |
-| `claudeLauncher.defaultProfile` | `""` | Set per workspace. Shows only this profile's button, and shortcuts use it without asking. |
+| `claudeLauncher.defaultProfile` | `""` | Set per workspace, easiest with **Claude: Set Project Profile**. Shows only this profile's button, and shortcuts use it without asking. |
 | `claudeLauncher.openOnStartup` | `false` | Opens the agents tab when a window opens. Works in single-folder workspaces when the profile is clear: your `defaultProfile`, or your only profile. |
 | `claudeLauncher.dangerouslySkipPermissions` | `true` | Launches with `--dangerously-skip-permissions`. Turn it off if you want Claude to ask before acting. |
 

@@ -225,8 +225,37 @@ function activate(context) {
       await openNewTab(cwd, profile);
     }),
 
-    vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles())
+    vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles()),
+
+    vscode.commands.registerCommand('claudeLauncher.setProjectProfile', () => setProjectProfile())
   );
+
+  async function setProjectProfile() {
+    if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length) {
+      vscode.window.showInformationMessage("Open a folder first. A project's profile is saved in its workspace settings.");
+      return;
+    }
+    const info = config().inspect('defaultProfile') || {};
+    const current = info.workspaceValue || undefined;
+    const items = [
+      { label: 'All profiles', description: 'show every button', iconPath: new vscode.ThemeIcon('list-unordered'), name: undefined },
+      ...getProfiles().map((p) => ({
+        label: p.name,
+        description: p.configDir || '~/.claude',
+        iconPath: colorIcon(p.color),
+        name: p.name,
+      })),
+    ];
+    for (const item of items) {
+      if (item.name === current) item.description = `${item.description} · current`;
+    }
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: 'Which profile should this project use?' });
+    if (!pick) return;
+    // "All profiles" has to override a user-level default with an empty
+    // value; with no user-level default, remove the key instead.
+    const value = pick.name || (info.globalValue ? '' : undefined);
+    await config().update('defaultProfile', value, vscode.ConfigurationTarget.Workspace);
+  }
 
   async function renameDefaultProfile(from, to) {
     const info = config().inspect('defaultProfile');
@@ -247,10 +276,18 @@ function activate(context) {
           profile: p,
         })),
         { label: 'Add profile', iconPath: new vscode.ThemeIcon('add'), add: true },
+        ...(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
+          ? [{ label: "Set this project's profile", iconPath: new vscode.ThemeIcon('pinned'), project: true }]
+          : []),
       ],
       { placeHolder: 'Choose a profile to edit, or add a new one' }
     );
     if (!pick) return;
+
+    if (pick.project) {
+      await setProjectProfile();
+      return;
+    }
 
     if (pick.add) {
       const name = await askName(profiles);
@@ -334,9 +371,12 @@ function activate(context) {
       tooltip.appendText(profile.name);
       tooltip.appendMarkdown(
         `**\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${newTabArgs}) · ` +
+          '[Project profile](command:claudeLauncher.setProjectProfile) · ' +
           '[Manage profiles](command:claudeLauncher.manageProfiles)'
       );
-      tooltip.isTrusted = { enabledCommands: ['claudeLauncher.newAgentsTab', 'claudeLauncher.manageProfiles'] };
+      tooltip.isTrusted = {
+        enabledCommands: ['claudeLauncher.newAgentsTab', 'claudeLauncher.setProjectProfile', 'claudeLauncher.manageProfiles'],
+      };
       item.tooltip = tooltip;
       item.command = { command: 'claudeLauncher.openAgents', title: 'Open Claude Agents', arguments: [profile] };
       item.show();
@@ -356,7 +396,8 @@ function activate(context) {
 
   // Startup never prompts: it needs exactly one folder and a profile it can
   // pick without asking (the workspace default, or the only one configured).
-  if (config().get('openOnStartup', false)) {
+  // Never auto-launch into a folder the user hasn't trusted yet.
+  if (vscode.workspace.isTrusted && config().get('openOnStartup', false)) {
     const folders = vscode.workspace.workspaceFolders;
     const profiles = getProfiles();
     const profile = getDefaultProfile(profiles) || (profiles.length === 1 ? profiles[0] : undefined);
