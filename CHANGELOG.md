@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0]
+
+### Added
+- **Claude: Manage Profiles** command: add, rename, recolor, change the config folder of, or delete
+  profiles from menus, with no JSON editing. It picks colors from a swatch list.
+- Hovering a status bar button shows **New tab** and **Manage profiles** links.
+- The profiles setting in the Settings UI links straight to Manage Profiles, since VS Code's settings
+  editor can't edit a list of profiles itself.
+
+### Changed
+- Renaming or deleting a profile also updates `claudeLauncher.defaultProfile` wherever it points at
+  that profile.
+
 ## [0.5.0]
 
 ### Added

@@ -55,8 +55,8 @@ Agents launch with full autonomy by default, so they don't stop to ask permissio
 Prefer to approve actions yourself? It's one setting to turn off.
 
 **🪶 Nothing extra.**
-No panels, no background indexing, no telemetry, no state files. It's around 200 lines of code,
-starts after VS Code finishes loading, and stays out of your way. Want your agents waiting for you
+No panels, no background indexing, no telemetry, no state files. It's a single small file with
+no dependencies, starts after VS Code finishes loading, and stays out of your way. Want your agents waiting for you
 when you open a project? Turn on one setting.
 
 ---
@@ -81,7 +81,11 @@ That's it. Prefer a manual install? Grab the `.vsix` from
 
 ## Set up multiple accounts
 
-Open your `settings.json` and list your profiles:
+Run **Claude: Manage Profiles** from the Command Palette, or hover any status bar button and click
+**Manage profiles**. From there you can add a profile, pick its color, point it at its own config
+folder, rename it, or delete it, all without touching JSON.
+
+Prefer editing settings directly? Add this to your `settings.json`:
 
 ```jsonc
 "claudeLauncher.profiles": [
@@ -96,7 +100,8 @@ settings never mix. Leave `configDir` out to use the default `~/.claude`.
 
 `color` tints the profile's button and its terminal tab so you always know which account you're
 in. Pick from `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, or `white`; the exact
-shade comes from your theme.
+shade comes from your theme. A new color shows on the button right away. A tab that's already open
+keeps its old color until you open a new one, because VS Code can't recolor an existing terminal.
 
 The first time you launch a new profile, sign in once and you're done.
 
@@ -122,7 +127,7 @@ asking which profile you meant.
 | Give each account its own shortcut | Add a keybinding for `claudeLauncher.openAgents` with `"args": { "name": "Work" }` |
 | Have agents open when you open a project | Turn on `claudeLauncher.openOnStartup` |
 | Approve each action yourself | Set `claudeLauncher.dangerouslySkipPermissions` to `false` |
-| Add another account | Add an entry to `claudeLauncher.profiles` |
+| Add an account, or change a color | **Claude: Manage Profiles**, or hover a button → **Manage profiles** |
 
 Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by searching "Claude Agents".
 
@@ -132,7 +137,7 @@ Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by sea
 
 | Setting | Default | What it does |
 |---|---|---|
-| `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. |
+| `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. Easiest to edit with **Claude: Manage Profiles**. |
 | `claudeLauncher.defaultProfile` | `""` | Set per workspace. Shows only this profile's button, and shortcuts use it without asking. |
 | `claudeLauncher.openOnStartup` | `false` | Opens the agents tab when a window opens. Works in single-folder workspaces when the profile is clear: your `defaultProfile`, or your only profile. |
 | `claudeLauncher.dangerouslySkipPermissions` | `true` | Launches with `--dangerously-skip-permissions`. Turn it off if you want Claude to ask before acting. |

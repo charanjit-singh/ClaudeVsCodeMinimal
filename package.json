@@ -2,7 +2,7 @@
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
@@ -26,6 +26,11 @@
         "command": "claudeLauncher.newAgentsTab",
         "title": "Claude: New Agents Tab",
         "icon": "$(add)"
+      },
+      {
+        "command": "claudeLauncher.manageProfiles",
+        "title": "Claude: Manage Profiles",
+        "icon": "$(settings-gear)"
       }
     ],
     "keybindings": [
@@ -51,7 +56,7 @@
         "claudeLauncher.profiles": {
           "type": "array",
           "default": [{ "name": "Claude" }],
-          "description": "One status bar button per profile. `configDir` sets CLAUDE_CONFIG_DIR for that profile's launch (e.g. a separate config dir for a work account) — leave it out to use Claude's default (~/.claude). Names must be unique.",
+          "markdownDescription": "One status bar button per profile. **[Manage profiles](command:claudeLauncher.manageProfiles)** to add, rename, recolor, or remove them without editing JSON.\n\n`configDir` sets `CLAUDE_CONFIG_DIR` for that profile (e.g. `~/.claude-work`); leave it out for the default `~/.claude`. Names must be unique.",
           "items": {
             "type": "object",
             "required": ["name"],

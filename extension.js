@@ -29,6 +29,16 @@ function themeColorFor(profile) {
   return new vscode.ThemeColor(`terminal.ansi${color[0].toUpperCase()}${color.slice(1)}`);
 }
 
+function colorIcon(color) {
+  return color
+    ? new vscode.ThemeIcon('circle-filled', themeColorFor({ color }))
+    : new vscode.ThemeIcon('circle-outline');
+}
+
+function capitalize(s) {
+  return s[0].toUpperCase() + s.slice(1);
+}
+
 function terminalName(profile) {
   return `Claude Agents — ${profile.name}`;
 }
@@ -90,6 +100,55 @@ async function resolveProfile(profileArg) {
     { placeHolder: 'Which Claude profile?' }
   );
   return pick ? pick.profile : undefined;
+}
+
+// Write back to whichever level already defines the list, so a workspace
+// override isn't silently copied into user settings (or vice versa).
+async function saveProfiles(profiles) {
+  const info = config().inspect('profiles');
+  const target =
+    info && info.workspaceValue !== undefined
+      ? vscode.ConfigurationTarget.Workspace
+      : vscode.ConfigurationTarget.Global;
+  const clean = profiles.map((p) => {
+    const out = { name: p.name };
+    if (p.configDir) out.configDir = p.configDir;
+    if (p.color) out.color = p.color;
+    return out;
+  });
+  await config().update('profiles', clean, target);
+}
+
+async function pickColor(current) {
+  const items = [
+    { label: 'No color', color: undefined, iconPath: colorIcon(undefined) },
+    ...ANSI_COLORS.map((c) => ({ label: capitalize(c), color: c, iconPath: colorIcon(c) })),
+  ];
+  for (const item of items) if (item.color === current) item.description = 'current';
+  const pick = await vscode.window.showQuickPick(items, { placeHolder: 'Pick a color' });
+  return pick ? { color: pick.color } : undefined;
+}
+
+async function askName(profiles, current) {
+  return vscode.window.showInputBox({
+    prompt: 'Profile name, shown on its status bar button',
+    value: current,
+    placeHolder: 'e.g. Work',
+    validateInput: (v) => {
+      const name = v.trim();
+      if (!name) return 'Name cannot be empty';
+      if (name !== current && profiles.some((p) => p.name === name)) return 'A profile with this name already exists';
+      return undefined;
+    },
+  });
+}
+
+async function askConfigDir(current) {
+  return vscode.window.showInputBox({
+    prompt: 'Claude config folder for this profile (CLAUDE_CONFIG_DIR). Leave blank for the default ~/.claude',
+    value: current || '',
+    placeHolder: '~/.claude-work',
+  });
 }
 
 function activate(context) {
@@ -164,8 +223,99 @@ function activate(context) {
       const cwd = await resolveCwd();
       if (!cwd) return;
       await openNewTab(cwd, profile);
-    })
+    }),
+
+    vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles())
   );
+
+  async function renameDefaultProfile(from, to) {
+    const info = config().inspect('defaultProfile');
+    if (!info) return;
+    if (info.workspaceValue === from) await config().update('defaultProfile', to, vscode.ConfigurationTarget.Workspace);
+    if (info.globalValue === from) await config().update('defaultProfile', to, vscode.ConfigurationTarget.Global);
+  }
+
+  async function manageProfiles() {
+    const profiles = getProfiles().map((p) => ({ ...p }));
+    const pick = await vscode.window.showQuickPick(
+      [
+        ...profiles.map((p) => ({
+          label: p.name,
+          description: p.configDir || '~/.claude',
+          detail: p.color ? capitalize(p.color) : undefined,
+          iconPath: colorIcon(p.color),
+          profile: p,
+        })),
+        { label: 'Add profile', iconPath: new vscode.ThemeIcon('add'), add: true },
+      ],
+      { placeHolder: 'Choose a profile to edit, or add a new one' }
+    );
+    if (!pick) return;
+
+    if (pick.add) {
+      const name = await askName(profiles);
+      if (name === undefined) return;
+      const configDir = await askConfigDir();
+      if (configDir === undefined) return;
+      const color = await pickColor();
+      if (!color) return;
+      profiles.push({ name: name.trim(), configDir: configDir.trim(), color: color.color });
+      await saveProfiles(profiles);
+      vscode.window.showInformationMessage(`Added profile "${name.trim()}".`);
+      return;
+    }
+
+    const profile = pick.profile;
+    const action = await vscode.window.showQuickPick(
+      [
+        { label: 'Change color', iconPath: colorIcon(profile.color), action: 'color' },
+        { label: 'Rename', iconPath: new vscode.ThemeIcon('edit'), action: 'rename' },
+        { label: 'Change config folder', description: profile.configDir || '~/.claude', iconPath: new vscode.ThemeIcon('folder'), action: 'dir' },
+        { label: 'Delete', iconPath: new vscode.ThemeIcon('trash'), action: 'delete' },
+      ],
+      { placeHolder: profile.name }
+    );
+    if (!action) return;
+
+    if (action.action === 'color') {
+      const color = await pickColor(profile.color);
+      if (!color) return;
+      profile.color = color.color;
+      await saveProfiles(profiles);
+      // VS Code can't recolor a terminal that already exists.
+      if (findExisting(profile)) {
+        vscode.window.showInformationMessage(
+          `Updated ${profile.name}'s button. Its open tab keeps the old color until you open a new one.`
+        );
+      }
+    } else if (action.action === 'rename') {
+      const name = await askName(profiles, profile.name);
+      if (name === undefined || name.trim() === profile.name) return;
+      const oldName = profile.name;
+      profile.name = name.trim();
+      const tracked = findExisting({ name: oldName });
+      if (tracked) {
+        currentByProfile.delete(oldName);
+        currentByProfile.set(profile.name, tracked);
+      }
+      await saveProfiles(profiles);
+      await renameDefaultProfile(oldName, profile.name);
+    } else if (action.action === 'dir') {
+      const configDir = await askConfigDir(profile.configDir);
+      if (configDir === undefined) return;
+      profile.configDir = configDir.trim();
+      await saveProfiles(profiles);
+    } else if (action.action === 'delete') {
+      const confirm = await vscode.window.showWarningMessage(
+        `Delete profile "${profile.name}"? Its Claude config folder and sessions stay on disk.`,
+        { modal: true },
+        'Delete'
+      );
+      if (confirm !== 'Delete') return;
+      await saveProfiles(profiles.filter((p) => p !== profile));
+      await renameDefaultProfile(profile.name, undefined);
+    }
+  }
 
   // Right alignment + low priority pushes these to the far right edge of the
   // status bar, next to the built-in notification bell — VS Code has no API
@@ -178,7 +328,16 @@ function activate(context) {
       // is the closest built-in stand-in.
       item.text = `$(sparkle) ${profile.name}`;
       item.color = themeColorFor(profile);
-      item.tooltip = `Claude Agents — ${profile.name}\nClick to open or focus · "Claude: New Agents Tab" for another`;
+      const newTabArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
+      const tooltip = new vscode.MarkdownString();
+      tooltip.appendMarkdown('**Claude Agents — ');
+      tooltip.appendText(profile.name);
+      tooltip.appendMarkdown(
+        `**\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${newTabArgs}) · ` +
+          '[Manage profiles](command:claudeLauncher.manageProfiles)'
+      );
+      tooltip.isTrusted = { enabledCommands: ['claudeLauncher.newAgentsTab', 'claudeLauncher.manageProfiles'] };
+      item.tooltip = tooltip;
       item.command = { command: 'claudeLauncher.openAgents', title: 'Open Claude Agents', arguments: [profile] };
       item.show();
       return item;
