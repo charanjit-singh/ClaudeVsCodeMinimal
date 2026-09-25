@@ -1,10 +1,14 @@
 {
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
-  "description": "One status bar button that opens `claude agents` in the current project's folder, as a pinned terminal tab.",
-  "version": "0.2.2",
+  "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
+  "version": "0.4.0",
   "publisher": "local",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/charanjit-singh/ClaudeVsCodeMinimal.git"
+  },
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -23,6 +27,35 @@
         "title": "Claude: New Agents Tab",
         "icon": "$(add)"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Claude Agents",
+      "properties": {
+        "claudeLauncher.dangerouslySkipPermissions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Launch with `claude agents --dangerously-skip-permissions`, bypassing Claude Code's permission prompts. Turn off to get prompted as usual."
+        },
+        "claudeLauncher.profiles": {
+          "type": "array",
+          "default": [{ "name": "Claude" }],
+          "description": "One status bar button per profile. `configDir` sets CLAUDE_CONFIG_DIR for that profile's launch (e.g. a separate config dir for a work account) — leave it out to use Claude's default (~/.claude). Names must be unique.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Label shown on the status bar button, e.g. \"Personal\" or \"Work\"."
+              },
+              "configDir": {
+                "type": "string",
+                "description": "Value for CLAUDE_CONFIG_DIR, e.g. ~/.claude-work. Leave empty for the default ~/.claude."
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
