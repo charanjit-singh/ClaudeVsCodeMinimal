@@ -1,0 +1,41 @@
+package.json
+  s_bfc161c020507d::t_04a792b621cae7 59
+  s_bfc161c020507d::t_66800d5b96d005 29-33
+  s_bfc161c020507d::t_d79e8a368e0434 5
+README.md
+  s_bfc161c020507d::t_a7a8f87bfe14dc 58-59
+  s_bfc161c020507d::t_98dd425f76c1bb 130
+  s_bfc161c020507d::t_8e414960db1d5a 140
+  s_bfc161c020507d::t_a8202ff76dc035 84-88
+  s_bfc161c020507d::t_e759319bbca8ab 103-104
+extension.js
+  s_bfc161c020507d::t_d673925f739075 226-228,231-318
+  s_bfc161c020507d::t_67b073b8839b17 338-340
+  s_bfc161c020507d::t_8341c3344af418 32-41
+  s_bfc161c020507d::t_960ec001c725e0 331-337
+  s_bfc161c020507d::t_7e31dd3137ac05 105-153
+  s_bfc161c020507d::t_e1af3461c5e0aa 319
+CHANGELOG.md
+  s_bfc161c020507d::t_ba048dc065ffaf 6-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "566feb5c75449646b8a251704e133e40ec1a162c",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
