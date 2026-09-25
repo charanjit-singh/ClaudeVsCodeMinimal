@@ -9,8 +9,8 @@
 A tiny button in your status bar opens Claude's agent view for the project you're in,
 right inside your editor. No sidebar, no setup, no clutter.
 
-[![Install from VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/charanjit-singh.claude-launcher-minimal?label=VS%20Code%20Marketplace&logo=visualstudiocode&color=D97757)](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/charanjit-singh.claude-launcher-minimal?color=D97757)](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
+[![Install from VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Install-D97757?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
+[![Latest release](https://img.shields.io/github/v/release/charanjit-singh/ClaudeVsCodeMinimal?color=D97757)](https://github.com/charanjit-singh/ClaudeVsCodeMinimal/releases/latest)
 
 [**Install from the VS Code Marketplace →**](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
 
