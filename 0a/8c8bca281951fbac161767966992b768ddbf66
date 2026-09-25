@@ -1,0 +1,24 @@
+.vscodeignore
+  s_bfc161c020507d::t_c3940bdc494ae7 3-4,6
+CHANGELOG.md
+  s_bfc161c020507d::t_164df0c29d2553 6-16
+package.json
+  s_bfc161c020507d::t_0c57fa6d1f80d0 8
+  s_bfc161c020507d::t_f6735a23d9c453 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a8c8bca281951fbac161767966992b768ddbf66",
+  "prompts": {},
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
