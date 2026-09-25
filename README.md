@@ -2,6 +2,8 @@
 
 One status bar button per profile. No sidebar, no tree, no state file.
 
+![Claude Agents opened as a pinned terminal tab](readme-assets/pinned-chat.png)
+
 - **Click** a profile's item in the status bar: focuses its terminal if it's already open,
   otherwise opens a new one running `claude agents --cwd=<project folder>`.
 - The terminal opens as a **pinned tab** in the editor group (not a split panel), named
@@ -29,6 +31,8 @@ Each profile gets its own status bar button and its own tracked terminal. `confi
 `CLAUDE_CONFIG_DIR` when launching that profile (e.g. `CLAUDE_CONFIG_DIR=~/.claude-work claude agents ...`);
 omit it to use the default `~/.claude`. Add as many as you want — unlimited, and each name must be unique.
 The Command Palette commands prompt you to pick a profile when there's more than one.
+
+![Work and Personal buttons next to the notification bell](readme-assets/bottom-right.png)
 
 ## Run it
 
