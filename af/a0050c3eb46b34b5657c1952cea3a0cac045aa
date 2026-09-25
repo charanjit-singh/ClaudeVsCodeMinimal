@@ -1,0 +1,20 @@
+README.md
+  s_bfc161c020507d::t_6fc5352282b576 35-36
+  s_bfc161c020507d::t_ab9ee9d835e357 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "afa0050c3eb46b34b5657c1952cea3a0cac045aa",
+  "prompts": {},
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
