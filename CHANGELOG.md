@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.1]
+
+### Added
+- README screenshots (pinned terminal tab, status bar buttons).
+- Marketplace icon (`media/icon.png`) and a `repository` field in `package.json`, in prep for
+  publishing to the VS Code Marketplace.
+
+### Changed
+- `.vscodeignore` trims `.github/`, `.gitignore`, and `readme-assets/` out of the packaged `.vsix` —
+  README images resolve against the GitHub repo instead of being bundled.
+
 ## [0.4.0]
 
 ### Added
