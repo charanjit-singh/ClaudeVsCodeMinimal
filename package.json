@@ -3,8 +3,7 @@
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
   "version": "0.4.1",
-  "publisher": "local",
-  "private": true,
+  "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
