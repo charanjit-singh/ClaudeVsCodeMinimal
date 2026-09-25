@@ -1,0 +1,39 @@
+README.md
+  s_bfc161c020507d::t_285eca39514459 88-89,97-100,103-112
+  s_bfc161c020507d::t_8b779e639acfe6 120-123,127
+  s_bfc161c020507d::t_9902158b3d9bca 58-60
+  s_bfc161c020507d::t_cfe72e1ef020d5 47-49
+  s_bfc161c020507d::t_c685a36f453122 38-40
+  s_bfc161c020507d::t_a27560a7b32103 135-137
+  s_bfc161c020507d::t_0d8c27c4d7e428 113
+  s_bfc161c020507d::t_dbc806ab306199 128
+package.json
+  s_bfc161c020507d::t_e5d24dd8c41520 5
+  s_bfc161c020507d::t_52c66d4a9a36fc 31-42
+  s_bfc161c020507d::t_d27d9de44261de 66-70,74-83
+CHANGELOG.md
+  s_bfc161c020507d::t_c50c3abb1d6600 6-20
+extension.js
+  s_bfc161c020507d::t_b2808c1d1026bf 7-12,26-35,37,44-55,57,77-78,81,85-86,98-100,104-110,112-122,124,126,132,138,150,175,177-178,180-181,192-194,197-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2f57c08cefdf82a583ef80ed52b5fd1d0a122623",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
