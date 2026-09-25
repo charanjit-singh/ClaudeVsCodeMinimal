@@ -40,3 +40,11 @@ jobs:
           files: "*.vsix"
           body_path: release_notes.md
           generate_release_notes: true
+
+      # Secrets can't be referenced in `if:` directly, so route through env;
+      # skipped (not failed) when the VSCE_PAT repo secret isn't set.
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: env.VSCE_PAT != ''
+        run: npx --yes @vscode/vsce publish --packagePath *.vsix
