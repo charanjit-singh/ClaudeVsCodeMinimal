@@ -9,7 +9,10 @@
 A tiny button in your status bar opens Claude's agent view for the project you're in,
 right inside your editor. No sidebar, no setup, no clutter.
 
-[**Download the latest release →**](https://github.com/charanjit-singh/ClaudeVsCodeMinimal/releases/latest)
+[![Install from VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/charanjit-singh.claude-launcher-minimal?label=VS%20Code%20Marketplace&logo=visualstudiocode&color=D97757)](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/charanjit-singh.claude-launcher-minimal?color=D97757)](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
+
+[**Install from the VS Code Marketplace →**](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal)
 
 </div>
 
@@ -57,13 +60,16 @@ starts after VS Code finishes loading, and stays out of your way.
 
 ## Get started in 30 seconds
 
-1. **Download** the `.vsix` from the [latest release](https://github.com/charanjit-singh/ClaudeVsCodeMinimal/releases/latest).
-2. **Install** it with one command:
+1. **Install** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=charanjit-singh.claude-launcher-minimal),
+   or search **"Claude Agents"** in the Extensions view, or run:
    ```bash
-   code --install-extension claude-launcher-minimal-*.vsix
+   code --install-extension charanjit-singh.claude-launcher-minimal
    ```
-   Or go to **Extensions** → `···` → **Install from VSIX…**
-3. **Reload VS Code** and click `✨ Claude` in the bottom-right corner.
+2. **Click** `✨ Claude` in the bottom-right corner of your status bar.
+
+That's it. Prefer a manual install? Grab the `.vsix` from
+[GitHub Releases](https://github.com/charanjit-singh/ClaudeVsCodeMinimal/releases/latest) and use
+**Extensions** → `···` → **Install from VSIX…**
 
 > **You'll need** the [Claude Code CLI](https://docs.claude.com/en/docs/claude-code) on your `PATH`
 > and VS Code 1.93 or newer.
