@@ -1,0 +1,30 @@
+.gitignore
+  h_08eca7ecc4bc75 3
+package.json
+  s_bfc161c020507d::t_6302229edeee83 5
+CHANGELOG.md
+  s_bfc161c020507d::t_f189b7b955dd07 6-15
+.vscodeignore
+  s_bfc161c020507d::t_e1a121b2d98307 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "352fc9d485a7b382b1297b0b3a43b65c7f47f029",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
