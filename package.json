@@ -2,7 +2,7 @@
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
@@ -17,11 +17,12 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In untrusted folders, the folder's own settings can't change your profiles, skip permissions, or auto-open agents.",
+      "description": "In untrusted folders, the folder's own settings can't change your profiles, skip permissions, auto-open agents, or turn on cross-profile messaging.",
       "restrictedConfigurations": [
         "claudeLauncher.profiles",
         "claudeLauncher.dangerouslySkipPermissions",
-        "claudeLauncher.openOnStartup"
+        "claudeLauncher.openOnStartup",
+        "claudeLauncher.crossProfileMessaging"
       ]
     }
   },
@@ -37,6 +38,31 @@
         "command": "claudeLauncher.newAgentsTab",
         "title": "Claude: New Agents Tab",
         "icon": "$(add)"
+      },
+      {
+        "command": "claudeLauncher.openAgentsForProfile",
+        "title": "Claude: Open Agents for Profile…",
+        "icon": "$(account)"
+      },
+      {
+        "command": "claudeLauncher.newAgentsTabForProfile",
+        "title": "Claude: New Agents Tab for Profile…",
+        "icon": "$(account)"
+      },
+      {
+        "command": "claudeLauncher.openLiveChatForProfile",
+        "title": "Claude: Open Live Chat for Profile…",
+        "icon": "$(account)"
+      },
+      {
+        "command": "claudeLauncher.openLiveChat",
+        "title": "Claude: Open Live Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "claudeLauncher.toggleCrossProfileMessaging",
+        "title": "Claude: Toggle Cross-Profile Messaging",
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "claudeLauncher.setProjectProfile",
@@ -97,6 +123,11 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Name of the profile this workspace uses. When set, only that profile's button is shown, and the keyboard shortcut and commands use it without asking. **[Pick one for this project](command:claudeLauncher.setProjectProfile)**, or set it in **Workspace** settings, e.g. `Work` for work repos."
+        },
+        "claudeLauncher.crossProfileMessaging": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Let Claude sessions in the same project talk to each other across profiles (e.g. a Work agent messaging a Personal one). Agents get `list_peers` and `send_message` tools, and incoming messages are handed to them between steps. **Claude: Open Live Chat** adds a session that receives messages instantly through Claude Code channels (research preview). Messages stay within the project. **[Toggle for this project](command:claudeLauncher.toggleCrossProfileMessaging)**"
         },
         "claudeLauncher.openOnStartup": {
           "type": "boolean",

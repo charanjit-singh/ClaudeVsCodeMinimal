@@ -1,8 +1,12 @@
 const vscode = require('vscode');
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
 
 const DEFAULT_PROFILES = [{ name: 'Claude' }];
+
+const BRIDGE_SERVER = 'claude_agents_bridge';
 
 const ANSI_COLORS = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 
@@ -39,8 +43,79 @@ function capitalize(s) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-function terminalName(profile) {
-  return `Claude Agents — ${profile.name}`;
+function terminalName(profile, kind = 'agents') {
+  return `${kind === 'chat' ? 'Claude Chat' : 'Claude Agents'} — ${profile.name}`;
+}
+
+function messagingEnabled() {
+  return config().get('crossProfileMessaging', false) === true;
+}
+
+function bridgeRoot() {
+  return process.env.CLAUDE_AGENTS_BRIDGE_ROOT || path.join(os.homedir(), '.claude-agents-bridge');
+}
+
+function writePrivate(file, data) {
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, data, { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
+// Agents dispatched from agent view can outlive this extension version, so
+// they run a stable copy of the bridge, not the versioned install folder.
+function installBridge(extensionPath) {
+  const code = fs.readFileSync(path.join(extensionPath, 'bridge', 'bridge.js'));
+  const dest = path.join(bridgeRoot(), 'bin', 'bridge.js');
+  let current;
+  try {
+    current = fs.readFileSync(dest);
+  } catch {}
+  if (!current || !current.equals(code)) writePrivate(dest, code);
+  return dest;
+}
+
+// The bridge runs on VS Code's own Node (ELECTRON_RUN_AS_NODE), so users
+// don't need Node installed. Hooks deliver mail to agent-view sessions; in
+// chat mode the same server also pushes live as a channel.
+function bridgeLaunchFiles(extensionPath, profile, project, mode) {
+  const script = installBridge(extensionPath);
+  const root = bridgeRoot();
+  const node = process.execPath;
+  const env = {
+    ELECTRON_RUN_AS_NODE: '1',
+    CLAUDE_AGENTS_BRIDGE_ROOT: root,
+    CLAUDE_AGENTS_BRIDGE_PROFILE: profile.name,
+    CLAUDE_AGENTS_BRIDGE_PROJECT: project,
+    CLAUDE_AGENTS_BRIDGE_MODE: mode,
+  };
+  const hookCommand = [
+    'ELECTRON_RUN_AS_NODE=1',
+    `CLAUDE_AGENTS_BRIDGE_ROOT=${shellEscape(root)}`,
+    shellEscape(node),
+    shellEscape(script),
+    'hook',
+    '--profile',
+    shellEscape(profile.name),
+    '--project',
+    shellEscape(project),
+  ].join(' ');
+  const hooks = [{ type: 'command', command: hookCommand, timeout: 10 }];
+
+  const key = crypto.createHash('sha1').update(path.resolve(project)).digest('hex').slice(0, 12);
+  const slug = profile.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'profile';
+  const base = path.join(root, 'launch', `${key}-${slug}-${mode}`);
+  const mcpConfig = `${base}-mcp.json`;
+  writePrivate(mcpConfig, JSON.stringify({ mcpServers: { [BRIDGE_SERVER]: { command: node, args: [script, 'serve'], env } } }, null, 2));
+  // Live-chat sessions get messages pushed as a channel; only agent-view
+  // sessions need the hooks.
+  if (mode !== 'mailbox') return { mcpConfig };
+  const settings = `${base}-settings.json`;
+  writePrivate(
+    settings,
+    JSON.stringify({ hooks: { PostToolUse: [{ matcher: '*', hooks }], UserPromptSubmit: [{ hooks }], Stop: [{ hooks }] } }, null, 2)
+  );
+  return { mcpConfig, settings };
 }
 
 function getProfiles() {
@@ -102,6 +177,24 @@ async function resolveProfile(profileArg) {
   return pick ? pick.profile : undefined;
 }
 
+// Unlike resolveProfile, this always asks, even in a project pinned to a
+// default profile, so the other profiles stay one command away.
+async function pickAnyProfile(placeHolder) {
+  const profiles = getProfiles();
+  if (profiles.length === 1) return profiles[0];
+  const pinned = getDefaultProfile(profiles);
+  const pick = await vscode.window.showQuickPick(
+    profiles.map((p) => ({
+      label: p.name,
+      description: [p === pinned ? 'project default' : '', p.configDir || '~/.claude'].filter(Boolean).join(' · '),
+      iconPath: colorIcon(p.color),
+      profile: p,
+    })),
+    { placeHolder }
+  );
+  return pick ? pick.profile : undefined;
+}
+
 // Write back to whichever level already defines the list, so a workspace
 // override isn't silently copied into user settings (or vice versa).
 async function saveProfiles(profiles) {
@@ -154,33 +247,51 @@ async function askConfigDir(current) {
 function activate(context) {
   const iconUri = vscode.Uri.joinPath(context.extensionUri, 'media', 'claude-icon-color.svg');
 
-  // Tracks each profile's terminal (by profile name) so a plain click focuses
-  // it again. VS Code gives extensions no way to tell a click from a
-  // modifier-click on a custom command, so "new tab" is a separate command.
-  const currentByProfile = new Map();
+  const extensionPath = context.extensionPath || (context.extensionUri && context.extensionUri.fsPath);
+
+  // Tracks each profile's tabs (by profile name) so a plain click focuses
+  // them again: agent view tabs and live-chat tabs separately. VS Code gives
+  // extensions no way to tell a click from a modifier-click on a custom
+  // command, so "new tab" is a separate command.
+  const tabs = { agents: new Map(), chat: new Map() };
+  const cwdOf = new WeakMap();
   let statusItems = [];
 
   context.subscriptions.push(
     vscode.window.onDidCloseTerminal((closed) => {
-      for (const [name, terminal] of currentByProfile) {
-        if (terminal === closed) currentByProfile.delete(name);
+      for (const map of Object.values(tabs)) {
+        for (const [name, terminal] of map) {
+          if (terminal === closed) map.delete(name);
+        }
       }
     })
   );
 
-  // After a window reload VS Code restores our terminal tabs but this map
-  // starts empty, so fall back to matching by the name we gave the terminal.
-  function findExisting(profile) {
-    const tracked = currentByProfile.get(profile.name);
+  // After a window reload VS Code restores our terminal tabs but these maps
+  // start empty, so fall back to matching by the name we gave the terminal.
+  function findExisting(profile, kind = 'agents') {
+    const map = tabs[kind];
+    const tracked = map.get(profile.name);
     if (tracked) return tracked;
-    const restored = vscode.window.terminals.find((t) => t.name === terminalName(profile));
-    if (restored) currentByProfile.set(profile.name, restored);
+    const restored = vscode.window.terminals.find((t) => t.name === terminalName(profile, kind));
+    if (restored) map.set(profile.name, restored);
     return restored;
   }
 
-  async function openNewTab(cwd, profile, { preserveFocus = false } = {}) {
+  async function openNewTab(cwd, profile, { preserveFocus = false, kind = 'agents' } = {}) {
+    const chat = kind === 'chat';
+    let bridge;
+    if (chat || messagingEnabled()) {
+      try {
+        bridge = bridgeLaunchFiles(extensionPath, profile, cwd, chat ? 'channel' : 'mailbox');
+      } catch (e) {
+        vscode.window.showErrorMessage(`Claude Agents couldn't set up cross-profile messaging: ${e.message}`);
+        if (chat) return undefined;
+      }
+    }
+
     const terminal = vscode.window.createTerminal({
-      name: terminalName(profile),
+      name: terminalName(profile, kind),
       iconPath: iconUri,
       color: themeColorFor(profile),
       cwd,
@@ -193,36 +304,113 @@ function activate(context) {
     if (profile.configDir) {
       args.push(`CLAUDE_CONFIG_DIR=${shellEscape(expandHome(profile.configDir))}`);
     }
-    args.push('claude', 'agents', `--cwd=${shellEscape(cwd)}`);
+    if (chat) {
+      // Custom channels aren't on the research-preview allowlist, so they
+      // only load through the development flag (and `claude agents` can't
+      // take it at all, hence a plain session here).
+      args.push('claude', '--dangerously-load-development-channels', `server:${BRIDGE_SERVER}`);
+    } else {
+      args.push('claude', 'agents', `--cwd=${shellEscape(cwd)}`);
+    }
     if (config().get('dangerouslySkipPermissions', true)) args.push('--dangerously-skip-permissions');
+    if (bridge) args.push('--mcp-config', shellEscape(bridge.mcpConfig));
+    if (bridge && bridge.settings) args.push('--settings', shellEscape(bridge.settings));
     terminal.sendText(args.join(' '));
     await vscode.commands.executeCommand('workbench.action.pinEditor');
-    currentByProfile.set(profile.name, terminal);
+    tabs[kind].set(profile.name, terminal);
+    cwdOf.set(terminal, cwd);
     return terminal;
   }
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('claudeLauncher.openAgents', async (profileArg) => {
-      const profile = await resolveProfile(profileArg);
-      if (!profile) return;
+  async function openOrFocus(profileArg, kind) {
+    const profile = await resolveProfile(profileArg);
+    if (!profile) return;
+    const existing = findExisting(profile, kind);
+    if (existing) {
+      existing.show();
+      return;
+    }
+    const cwd = await resolveCwd();
+    if (!cwd) return;
+    await openNewTab(cwd, profile, { kind });
+  }
 
-      const existing = findExisting(profile);
-      if (existing) {
-        existing.show();
-        return;
-      }
-      const cwd = await resolveCwd();
-      if (!cwd) return;
-      await openNewTab(cwd, profile);
+  async function newAgentsTab(profileArg) {
+    const profile = await resolveProfile(profileArg);
+    if (!profile) return;
+    const cwd = await resolveCwd();
+    if (!cwd) return;
+    await openNewTab(cwd, profile);
+  }
+
+  // Agents already running keep their launch flags, so switching messaging
+  // on or off only reaches agents started from a fresh agents tab.
+  async function restartAgentsTabs() {
+    const open = [...tabs.agents.entries()];
+    for (const [name, terminal] of open) {
+      const profile = getProfiles().find((p) => p.name === name);
+      const cwd = cwdOf.get(terminal) || (await resolveCwd());
+      terminal.dispose();
+      tabs.agents.delete(name);
+      if (profile && cwd) await openNewTab(cwd, profile);
+    }
+  }
+
+  async function toggleMessaging() {
+    const folderOpen = !!(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
+    const next = !messagingEnabled();
+    await config().update(
+      'crossProfileMessaging',
+      next,
+      folderOpen ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+    );
+    const where = folderOpen ? 'this project' : 'all projects';
+    const summary = `Cross-profile messaging is ${next ? 'on' : 'off'} for ${where}.`;
+    if (!tabs.agents.size) {
+      vscode.window.showInformationMessage(summary);
+      return;
+    }
+    const choice = await vscode.window.showInformationMessage(
+      `${summary} Restart your agents tab so new agents pick it up. Running agents aren't affected either way.`,
+      'Restart Agents Tab'
+    );
+    if (choice) await restartAgentsTabs();
+  }
+
+  async function openLiveChat(profileArg) {
+    if (!messagingEnabled()) {
+      const choice = await vscode.window.showInformationMessage(
+        'Live chat uses cross-profile messaging, which is off for this project. Turn it on?',
+        'Turn On'
+      );
+      if (choice !== 'Turn On') return;
+      await toggleMessaging();
+    }
+    await openOrFocus(profileArg, 'chat');
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeLauncher.openAgents', (profileArg) => openOrFocus(profileArg, 'agents')),
+
+    vscode.commands.registerCommand('claudeLauncher.openLiveChat', (profileArg) => openLiveChat(profileArg)),
+
+    vscode.commands.registerCommand('claudeLauncher.toggleCrossProfileMessaging', () => toggleMessaging()),
+
+    vscode.commands.registerCommand('claudeLauncher.newAgentsTab', (profileArg) => newAgentsTab(profileArg)),
+
+    vscode.commands.registerCommand('claudeLauncher.openAgentsForProfile', async () => {
+      const profile = await pickAnyProfile('Open agents for which profile?');
+      if (profile) await openOrFocus(profile, 'agents');
     }),
 
-    vscode.commands.registerCommand('claudeLauncher.newAgentsTab', async (profileArg) => {
-      const profile = await resolveProfile(profileArg);
-      if (!profile) return;
+    vscode.commands.registerCommand('claudeLauncher.newAgentsTabForProfile', async () => {
+      const profile = await pickAnyProfile('New agents tab for which profile?');
+      if (profile) await newAgentsTab(profile);
+    }),
 
-      const cwd = await resolveCwd();
-      if (!cwd) return;
-      await openNewTab(cwd, profile);
+    vscode.commands.registerCommand('claudeLauncher.openLiveChatForProfile', async () => {
+      const profile = await pickAnyProfile('Open live chat for which profile?');
+      if (profile) await openLiveChat(profile);
     }),
 
     vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles()),
@@ -330,10 +518,12 @@ function activate(context) {
       if (name === undefined || name.trim() === profile.name) return;
       const oldName = profile.name;
       profile.name = name.trim();
-      const tracked = findExisting({ name: oldName });
-      if (tracked) {
-        currentByProfile.delete(oldName);
-        currentByProfile.set(profile.name, tracked);
+      for (const kind of Object.keys(tabs)) {
+        const tracked = findExisting({ name: oldName }, kind);
+        if (tracked) {
+          tabs[kind].delete(oldName);
+          tabs[kind].set(profile.name, tracked);
+        }
       }
       await saveProfiles(profiles);
       await renameDefaultProfile(oldName, profile.name);
@@ -359,23 +549,43 @@ function activate(context) {
   // to dock beside a specific native item, this is the closest equivalent.
   function rebuildStatusBar() {
     for (const item of statusItems) item.dispose();
-    statusItems = getVisibleProfiles().map((profile, i) => {
+    const messaging = messagingEnabled();
+    const multiProfile = getProfiles().length > 1;
+    const visible = getVisibleProfiles();
+    const othersHidden = getProfiles().length > visible.length;
+    statusItems = visible.map((profile, i) => {
       const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1 + i);
       // Status bar text only renders codicons, not our SVG logo; $(sparkle)
       // is the closest built-in stand-in.
-      item.text = `$(sparkle) ${profile.name}`;
+      item.text = `$(sparkle) ${profile.name}${messaging ? ' $(comment-discussion)' : ''}`;
       item.color = themeColorFor(profile);
-      const newTabArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
+      const profileArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
       const tooltip = new vscode.MarkdownString();
       tooltip.appendMarkdown('**Claude Agents — ');
       tooltip.appendText(profile.name);
       tooltip.appendMarkdown(
-        `**\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${newTabArgs}) · ` +
+        `**\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${profileArgs}) · ` +
+          (othersHidden ? '[Other profile…](command:claudeLauncher.openAgentsForProfile) · ' : '') +
           '[Project profile](command:claudeLauncher.setProjectProfile) · ' +
           '[Manage profiles](command:claudeLauncher.manageProfiles)'
       );
+      if (messaging) {
+        tooltip.appendMarkdown(
+          `\n\nCross-profile messaging **on** · [Live chat](command:claudeLauncher.openLiveChat?${profileArgs}) · ` +
+            '[Turn off](command:claudeLauncher.toggleCrossProfileMessaging)'
+        );
+      } else if (multiProfile) {
+        tooltip.appendMarkdown('\n\n[Turn on cross-profile messaging](command:claudeLauncher.toggleCrossProfileMessaging)');
+      }
       tooltip.isTrusted = {
-        enabledCommands: ['claudeLauncher.newAgentsTab', 'claudeLauncher.setProjectProfile', 'claudeLauncher.manageProfiles'],
+        enabledCommands: [
+          'claudeLauncher.newAgentsTab',
+          'claudeLauncher.openAgentsForProfile',
+          'claudeLauncher.setProjectProfile',
+          'claudeLauncher.manageProfiles',
+          'claudeLauncher.openLiveChat',
+          'claudeLauncher.toggleCrossProfileMessaging',
+        ],
       };
       item.tooltip = tooltip;
       item.command = { command: 'claudeLauncher.openAgents', title: 'Open Claude Agents', arguments: [profile] };
@@ -388,7 +598,11 @@ function activate(context) {
   context.subscriptions.push({ dispose: () => statusItems.forEach((i) => i.dispose()) });
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('claudeLauncher.profiles') || e.affectsConfiguration('claudeLauncher.defaultProfile')) {
+      if (
+        e.affectsConfiguration('claudeLauncher.profiles') ||
+        e.affectsConfiguration('claudeLauncher.defaultProfile') ||
+        e.affectsConfiguration('claudeLauncher.crossProfileMessaging')
+      ) {
         rebuildStatusBar();
       }
     })

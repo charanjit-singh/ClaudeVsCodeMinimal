@@ -3,6 +3,31 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0]
+
+### Added
+- **Cross-profile messaging** (`claudeLauncher.crossProfileMessaging`, off by default, set per project):
+  agents on different Claude accounts in the same project can find and message each other. Turn it on
+  with **Claude: Toggle Cross-Profile Messaging**. See [Profile communication](docs/profile-communication.md).
+  - Agents started from an agents tab get `list_peers`, `send_message`, `read_messages`, and
+    `set_label`. Messages reach them after each tool call, when you send a prompt, and before they go
+    idle.
+  - **Claude: Open Live Chat** opens a session that receives messages instantly through Claude Code
+    channels (research preview; loaded with `--dangerously-load-development-channels`).
+  - Each project has its own mailbox in `~/.claude-agents-bridge/`. The bridge is passed at launch, so
+    nothing is written to your repo or your Claude config, and it runs on VS Code's bundled Node.
+  - Messages to a profile with no running session wait for the next one, and a session that closes
+    with unread mail hands it back to that queue.
+- **Claude: Open Agents for Profile…**, **New Agents Tab for Profile…**, and **Open Live Chat for
+  Profile…** always let you pick a profile, even in a project pinned to another one. The button's
+  tooltip gets an **Other profile…** link when profiles are hidden.
+- [Profile communication](docs/profile-communication.md) guide, and new README illustrations.
+
+### Security
+- Until you trust a folder, its own settings can't turn on `crossProfileMessaging`.
+- Messages from other agents reach an agent with a note to treat them as a collaborator's requests, not
+  as your instructions.
+
 ## [0.7.0]
 
 ### Added

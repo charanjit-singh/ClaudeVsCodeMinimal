@@ -6,3 +6,4 @@
 .github/**
 *.vsix
 readme-assets/**
+docs/**
