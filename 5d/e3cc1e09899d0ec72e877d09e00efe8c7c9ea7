@@ -1,0 +1,68 @@
+bridge/bridge.js
+  s_bfc161c020507d::t_7fe3913bd42508 144-191
+  s_bfc161c020507d::t_b2e3fcc9e45b88 274
+  s_bfc161c020507d::t_eb45d929653d4f 1-143,192-273,275-328,337-353,355-418,422-495
+  s_bfc161c020507d::t_d9a0a2c7a85281 354
+  s_bfc161c020507d::t_2c7815eab6e7a7 329-336
+  s_bfc161c020507d::t_6ab47f6c25b4c8 419-421
+extension.js
+  s_bfc161c020507d::t_bad4f726b8007f 46-109,114-118
+  s_bfc161c020507d::t_b44661da5109f4 110-113
+  s_bfc161c020507d::t_36708d5cc11f64 554-556
+  s_bfc161c020507d::t_85dd781203a585 338-345
+  s_bfc161c020507d::t_7ec8d29d0bc404 180-197
+  s_bfc161c020507d::t_ebfca3a88375ca 250-257,262-265,270-274,276-277,281-292,294,307-314,320-321,325-337,346-390
+  s_bfc161c020507d::t_4ef7ebb15cfa69 399-403,406-409,411-413
+  s_bfc161c020507d::t_592cb981111ea4 393-397
+  s_bfc161c020507d::t_7b7f80f15caffb 2,5,9
+  s_bfc161c020507d::t_838f291b7902c0 583
+  s_bfc161c020507d::t_38540c4f5ff4b0 601-605
+  s_bfc161c020507d::t_c0ebcd0c95872f 521-526
+  s_bfc161c020507d::t_c2a75b980fc514 316-317
+  s_bfc161c020507d::t_1334fa4e64487b 552-553,560,562,567,572-579,581-582,584-588
+  s_bfc161c020507d::t_bb3a0db6d009f6 568
+  s_bfc161c020507d::t_158790ca8fc4fb 10
+  s_bfc161c020507d::t_52a2dd48ac685f 391
+  s_bfc161c020507d::t_b53ba92be30d81 398
+docs/profile-communication.md
+  s_bfc161c020507d::t_5500d827a74223 1-20,22-104,106-141
+  s_bfc161c020507d::t_d99d3936afe681 21
+  s_bfc161c020507d::t_cf9917249436ac 105
+package.json
+  s_bfc161c020507d::t_0310f830614b4d 42,58-66
+  s_bfc161c020507d::t_b822f593d8e9de 43-57
+  s_bfc161c020507d::t_624d141cd748fc 20,24-25
+  s_bfc161c020507d::t_b6c8992a1000ad 5
+  s_bfc161c020507d::t_ba1d401d7f45d3 127-131
+.vscodeignore
+  s_bfc161c020507d::t_451e66467b9b12 9
+README.md
+  s_bfc161c020507d::t_863a88218e4712 198-200
+  s_bfc161c020507d::t_a45f8bb38bae82 126-146
+  s_bfc161c020507d::t_3785189beeee27 215
+  s_bfc161c020507d::t_2dea9f03374a3c 53-61,67-69
+  s_bfc161c020507d::t_d1ce2096d454ad 184-185
+CHANGELOG.md
+  s_bfc161c020507d::t_a4b659cb65ca89 6-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5de3cc1e09899d0ec72e877d09e00efe8c7c9ea7",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
