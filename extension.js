@@ -2,11 +2,10 @@ const vscode = require('vscode');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const crypto = require('crypto');
+const mailboxes = require('./mailboxes.js');
+const bridge = require('./bridge/bridge.js');
 
 const DEFAULT_PROFILES = [{ name: 'Claude' }];
-
-const BRIDGE_SERVER = 'claude_agents_bridge';
 
 const ANSI_COLORS = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 
@@ -47,75 +46,17 @@ function terminalName(profile, kind = 'agents') {
   return `${kind === 'chat' ? 'Claude Chat' : 'Claude Agents'} — ${profile.name}`;
 }
 
-function messagingEnabled() {
-  return config().get('crossProfileMessaging', false) === true;
+function mailboxesEnabled() {
+  return config().get('mailboxes', false) === true;
 }
 
-function bridgeRoot() {
-  return process.env.CLAUDE_AGENTS_BRIDGE_ROOT || path.join(os.homedir(), '.claude-agents-bridge');
+function currentProject() {
+  const folders = vscode.workspace.workspaceFolders;
+  return folders && folders.length ? folders[0].uri.fsPath : undefined;
 }
 
-function writePrivate(file, data) {
-  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, data, { mode: 0o600 });
-  fs.renameSync(tmp, file);
-}
-
-// Agents dispatched from agent view can outlive this extension version, so
-// they run a stable copy of the bridge, not the versioned install folder.
-function installBridge(extensionPath) {
-  const code = fs.readFileSync(path.join(extensionPath, 'bridge', 'bridge.js'));
-  const dest = path.join(bridgeRoot(), 'bin', 'bridge.js');
-  let current;
-  try {
-    current = fs.readFileSync(dest);
-  } catch {}
-  if (!current || !current.equals(code)) writePrivate(dest, code);
-  return dest;
-}
-
-// The bridge runs on VS Code's own Node (ELECTRON_RUN_AS_NODE), so users
-// don't need Node installed. Hooks deliver mail to agent-view sessions; in
-// chat mode the same server also pushes live as a channel.
-function bridgeLaunchFiles(extensionPath, profile, project, mode) {
-  const script = installBridge(extensionPath);
-  const root = bridgeRoot();
-  const node = process.execPath;
-  const env = {
-    ELECTRON_RUN_AS_NODE: '1',
-    CLAUDE_AGENTS_BRIDGE_ROOT: root,
-    CLAUDE_AGENTS_BRIDGE_PROFILE: profile.name,
-    CLAUDE_AGENTS_BRIDGE_PROJECT: project,
-    CLAUDE_AGENTS_BRIDGE_MODE: mode,
-  };
-  const hookCommand = [
-    'ELECTRON_RUN_AS_NODE=1',
-    `CLAUDE_AGENTS_BRIDGE_ROOT=${shellEscape(root)}`,
-    shellEscape(node),
-    shellEscape(script),
-    'hook',
-    '--profile',
-    shellEscape(profile.name),
-    '--project',
-    shellEscape(project),
-  ].join(' ');
-  const hooks = [{ type: 'command', command: hookCommand, timeout: 10 }];
-
-  const key = crypto.createHash('sha1').update(path.resolve(project)).digest('hex').slice(0, 12);
-  const slug = profile.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'profile';
-  const base = path.join(root, 'launch', `${key}-${slug}-${mode}`);
-  const mcpConfig = `${base}-mcp.json`;
-  writePrivate(mcpConfig, JSON.stringify({ mcpServers: { [BRIDGE_SERVER]: { command: node, args: [script, 'serve'], env } } }, null, 2));
-  // Live-chat sessions get messages pushed as a channel; only agent-view
-  // sessions need the hooks.
-  if (mode !== 'mailbox') return { mcpConfig };
-  const settings = `${base}-settings.json`;
-  writePrivate(
-    settings,
-    JSON.stringify({ hooks: { PostToolUse: [{ matcher: '*', hooks }], UserPromptSubmit: [{ hooks }], Stop: [{ hooks }] } }, null, 2)
-  );
-  return { mcpConfig, settings };
+function pluralize(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
 function getProfiles() {
@@ -254,7 +195,6 @@ function activate(context) {
   // extensions no way to tell a click from a modifier-click on a custom
   // command, so "new tab" is a separate command.
   const tabs = { agents: new Map(), chat: new Map() };
-  const cwdOf = new WeakMap();
   let statusItems = [];
 
   context.subscriptions.push(
@@ -280,16 +220,6 @@ function activate(context) {
 
   async function openNewTab(cwd, profile, { preserveFocus = false, kind = 'agents' } = {}) {
     const chat = kind === 'chat';
-    let bridge;
-    if (chat || messagingEnabled()) {
-      try {
-        bridge = bridgeLaunchFiles(extensionPath, profile, cwd, chat ? 'channel' : 'mailbox');
-      } catch (e) {
-        vscode.window.showErrorMessage(`Claude Agents couldn't set up cross-profile messaging: ${e.message}`);
-        if (chat) return undefined;
-      }
-    }
-
     const terminal = vscode.window.createTerminal({
       name: terminalName(profile, kind),
       iconPath: iconUri,
@@ -305,20 +235,18 @@ function activate(context) {
       args.push(`CLAUDE_CONFIG_DIR=${shellEscape(expandHome(profile.configDir))}`);
     }
     if (chat) {
-      // Custom channels aren't on the research-preview allowlist, so they
-      // only load through the development flag (and `claude agents` can't
-      // take it at all, hence a plain session here).
-      args.push('claude', '--dangerously-load-development-channels', `server:${BRIDGE_SERVER}`);
+      // The mailbox server is already in the profile's config; the env var
+      // switches it to channel mode. Custom channels aren't on the
+      // research-preview allowlist, so they only load through the development
+      // flag (and `claude agents` can't take it at all, hence a plain session).
+      args.push('CLAUDE_MAILBOX_LIVE=1', 'claude', '--dangerously-load-development-channels', `server:${bridge.SERVER_NAME}`);
     } else {
       args.push('claude', 'agents', `--cwd=${shellEscape(cwd)}`);
     }
     if (config().get('dangerouslySkipPermissions', true)) args.push('--dangerously-skip-permissions');
-    if (bridge) args.push('--mcp-config', shellEscape(bridge.mcpConfig));
-    if (bridge && bridge.settings) args.push('--settings', shellEscape(bridge.settings));
     terminal.sendText(args.join(' '));
     await vscode.commands.executeCommand('workbench.action.pinEditor');
     tabs[kind].set(profile.name, terminal);
-    cwdOf.set(terminal, cwd);
     return terminal;
   }
 
@@ -343,48 +271,190 @@ function activate(context) {
     await openNewTab(cwd, profile);
   }
 
-  // Agents already running keep their launch flags, so switching messaging
-  // on or off only reaches agents started from a fresh agents tab.
-  async function restartAgentsTabs() {
-    const open = [...tabs.agents.entries()];
-    for (const [name, terminal] of open) {
-      const profile = getProfiles().find((p) => p.name === name);
-      const cwd = cwdOf.get(terminal) || (await resolveCwd());
-      terminal.dispose();
-      tabs.agents.delete(name);
-      if (profile && cwd) await openNewTab(cwd, profile);
-    }
+  // ---------- mailboxes ----------
+
+  // Installs into (or removes from) every profile's Claude config to match
+  // the setting. Cheap when nothing changed: a stamp file records what's done.
+  let syncing = Promise.resolve();
+  function syncMailboxes({ report = false, force = false } = {}) {
+    syncing = syncing.then(async () => {
+      const enabled = mailboxesEnabled();
+      if (!enabled && !mailboxes.isInstalled()) return;
+      const result = await mailboxes.sync({ enabled, profiles: getProfiles(), extensionPath, force });
+      if (result.skipped) return;
+      for (const error of result.errors) vscode.window.showErrorMessage(`Claude Agents mailboxes: ${error}`);
+      if (report && enabled && !result.errors.length) {
+        const where = getProfiles()
+          .map((p) => `${p.name} (${p.configDir || '~/.claude'})`)
+          .join(', ');
+        const hasBox = currentProject() && bridge.mailboxFor(currentProject());
+        const choice = await vscode.window.showInformationMessage(
+          `Mailboxes are set up for ${where}. New Claude sessions have them; restart sessions that were already running.` +
+            (hasBox ? '' : ' Next, give this project a mailbox.'),
+          ...(hasBox || !currentProject() ? [] : ['Create Mailbox', 'Select Mailbox'])
+        );
+        if (choice === 'Create Mailbox') await createMailboxCmd();
+        if (choice === 'Select Mailbox') await selectMailboxCmd();
+      } else if (report && !enabled && result.removed.length) {
+        vscode.window.showInformationMessage(
+          `Mailboxes removed from ${result.removed.join(', ')}. Your own status lines and hooks were restored; mailbox history stays in ${bridge.ROOT}.`
+        );
+      }
+      rebuildStatusBar();
+    });
+    return syncing;
   }
 
-  async function toggleMessaging() {
-    const folderOpen = !!(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
-    const next = !messagingEnabled();
-    await config().update(
-      'crossProfileMessaging',
-      next,
-      folderOpen ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+  async function setUpMailboxes() {
+    const profiles = getProfiles();
+    const list = profiles.map((p) => `• ${p.name}: ${p.configDir || '~/.claude'}`).join('\n');
+    const choice = await vscode.window.showInformationMessage(
+      'Set up mailboxes so your Claude sessions can message each other, across profiles?',
+      {
+        modal: true,
+        detail:
+          `This adds to each profile's Claude config:\n${list}\n\n` +
+          '• the claude_mailbox MCP server (user scope, via `claude mcp add`)\n' +
+          '• three hooks that hand messages to a session between steps\n' +
+          "• a status line segment with the session's name and mailbox (your current status line is kept and shown first)\n\n" +
+          'Nothing else in your config changes, and "Claude Agents: Remove Mailboxes" undoes all of it.',
+      },
+      'Set Up'
     );
-    const where = folderOpen ? 'this project' : 'all projects';
-    const summary = `Cross-profile messaging is ${next ? 'on' : 'off'} for ${where}.`;
-    if (!tabs.agents.size) {
-      vscode.window.showInformationMessage(summary);
+    if (choice !== 'Set Up') return false;
+    if (mailboxesEnabled()) await syncMailboxes({ report: true, force: true });
+    else await config().update('mailboxes', true, vscode.ConfigurationTarget.Global);
+    return true;
+  }
+
+  async function removeMailboxes() {
+    const choice = await vscode.window.showWarningMessage(
+      'Remove mailboxes from all your Claude profiles?',
+      { modal: true, detail: 'Removes the claude_mailbox MCP server, its hooks, and its status line segment, and restores your own status line. Mailboxes and their history stay on disk.' },
+      'Remove'
+    );
+    if (choice !== 'Remove') return;
+    if (!mailboxesEnabled()) await syncMailboxes({ report: true });
+    else await config().update('mailboxes', false, vscode.ConfigurationTarget.Global);
+  }
+
+  async function ensureSetUp(why) {
+    if (mailboxesEnabled()) return true;
+    const choice = await vscode.window.showInformationMessage(`${why} needs mailboxes, which aren't set up yet.`, 'Set Up Mailboxes');
+    return choice === 'Set Up Mailboxes' ? setUpMailboxes() : false;
+  }
+
+  function describeBox(box) {
+    const n = bridge.livePeers(box.id).length;
+    return `${pluralize(n, 'active session')} · ${box.projects.map((p) => path.basename(p)).join(', ') || 'no projects'}`;
+  }
+
+  async function createMailboxCmd() {
+    const cwd = currentProject() || (await resolveCwd());
+    if (!cwd) return;
+    const name = await vscode.window.showInputBox({
+      title: 'Create Mailbox',
+      prompt: `Mailbox for ${cwd}. Sessions in this folder (any profile) will share it.`,
+      value: path.basename(cwd),
+      validateInput: (v) => {
+        if (!v.trim()) return 'Name cannot be empty';
+        return bridge.findMailbox(v) ? 'A mailbox with this name already exists. Use "Select Mailbox" to join it.' : undefined;
+      },
+    });
+    if (name === undefined) return;
+    try {
+      const box = bridge.createMailbox(name, cwd);
+      rebuildStatusBar();
+      vscode.window.showInformationMessage(`Created mailbox "${box.name}" for ${path.basename(cwd)}.`);
+    } catch (e) {
+      vscode.window.showErrorMessage(e.message);
+    }
+    await ensureSetUp('Messaging');
+  }
+
+  async function selectMailboxCmd() {
+    const cwd = currentProject() || (await resolveCwd());
+    if (!cwd) return;
+    const current = bridge.mailboxFor(cwd);
+    const items = [
+      ...bridge.listMailboxes().map((b) => ({
+        label: b.name,
+        description: `${current && current.id === b.id ? 'current · ' : ''}${describeBox(b)}`,
+        iconPath: new vscode.ThemeIcon('inbox'),
+        box: b,
+      })),
+      { label: 'Create a new mailbox…', iconPath: new vscode.ThemeIcon('add'), create: true },
+      ...(current ? [{ label: `Leave "${current.name}"`, iconPath: new vscode.ThemeIcon('close'), leave: true }] : []),
+    ];
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: `Which mailbox should ${path.basename(cwd)} use?` });
+    if (!pick) return;
+    if (pick.create) return createMailboxCmd();
+    if (pick.leave) bridge.leaveMailbox(cwd);
+    else bridge.selectMailbox(pick.box.id, cwd);
+    rebuildStatusBar();
+    if (pick.box) await ensureSetUp('Messaging');
+  }
+
+  async function listMailboxesCmd() {
+    const boxes = bridge.listMailboxes();
+    if (!boxes.length) {
+      const choice = await vscode.window.showInformationMessage('There are no mailboxes yet.', 'Create Mailbox');
+      if (choice) await createMailboxCmd();
       return;
     }
-    const choice = await vscode.window.showInformationMessage(
-      `${summary} Restart your agents tab so new agents pick it up. Running agents aren't affected either way.`,
-      'Restart Agents Tab'
+    const current = currentProject() && bridge.mailboxFor(currentProject());
+    const pick = await vscode.window.showQuickPick(
+      boxes.map((b) => {
+        const peers = bridge.livePeers(b.id);
+        return {
+          label: b.name,
+          description: `${current && current.id === b.id ? 'this project · ' : ''}${pluralize(peers.length, 'active session')}`,
+          detail: [b.projects.join(' · ') || 'no projects', peers.map((p) => `${p.name} (${p.profile})`).join(', ')].filter(Boolean).join('  —  '),
+          iconPath: new vscode.ThemeIcon('inbox'),
+          box: b,
+        };
+      }),
+      { placeHolder: 'Mailboxes', matchOnDetail: true }
     );
-    if (choice) await restartAgentsTabs();
+    if (!pick) return;
+    const action = await vscode.window.showQuickPick(
+      [
+        ...(currentProject() && !(current && current.id === pick.box.id) ? [{ label: 'Use for this project', id: 'use', iconPath: new vscode.ThemeIcon('check') }] : []),
+        { label: 'Reveal folder', id: 'reveal', iconPath: new vscode.ThemeIcon('folder-opened') },
+        { label: 'Delete mailbox', id: 'delete', iconPath: new vscode.ThemeIcon('trash') },
+      ],
+      { placeHolder: pick.box.name }
+    );
+    if (!action) return;
+    if (action.id === 'use') {
+      bridge.selectMailbox(pick.box.id, currentProject());
+      await ensureSetUp('Messaging');
+    } else if (action.id === 'reveal') {
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(path.join(bridge.ROOT, 'mailboxes', pick.box.id, 'mailbox.json')));
+    } else if (action.id === 'delete') {
+      const ok = await vscode.window.showWarningMessage(
+        `Delete mailbox "${pick.box.name}" and its unread messages?`,
+        { modal: true, detail: `Projects in it: ${pick.box.projects.join(', ') || 'none'}. Sessions in them stop sharing messages.` },
+        'Delete'
+      );
+      if (ok === 'Delete') bridge.deleteMailbox(pick.box.id);
+    }
+    rebuildStatusBar();
   }
 
   async function openLiveChat(profileArg) {
-    if (!messagingEnabled()) {
+    if (!(await ensureSetUp('Live chat'))) return;
+    const cwd = currentProject() || (await resolveCwd());
+    if (!cwd) return;
+    if (!bridge.mailboxFor(cwd)) {
       const choice = await vscode.window.showInformationMessage(
-        'Live chat uses cross-profile messaging, which is off for this project. Turn it on?',
-        'Turn On'
+        `${path.basename(cwd)} isn't in a mailbox yet. Live chat needs one to receive messages.`,
+        'Create Mailbox',
+        'Select Mailbox'
       );
-      if (choice !== 'Turn On') return;
-      await toggleMessaging();
+      if (choice === 'Create Mailbox') await createMailboxCmd();
+      else if (choice === 'Select Mailbox') await selectMailboxCmd();
+      if (!bridge.mailboxFor(cwd)) return;
     }
     await openOrFocus(profileArg, 'chat');
   }
@@ -394,7 +464,15 @@ function activate(context) {
 
     vscode.commands.registerCommand('claudeLauncher.openLiveChat', (profileArg) => openLiveChat(profileArg)),
 
-    vscode.commands.registerCommand('claudeLauncher.toggleCrossProfileMessaging', () => toggleMessaging()),
+    vscode.commands.registerCommand('claudeLauncher.setUpMailboxes', () => setUpMailboxes()),
+
+    vscode.commands.registerCommand('claudeLauncher.removeMailboxes', () => removeMailboxes()),
+
+    vscode.commands.registerCommand('claudeLauncher.createMailbox', () => createMailboxCmd()),
+
+    vscode.commands.registerCommand('claudeLauncher.selectMailbox', () => selectMailboxCmd()),
+
+    vscode.commands.registerCommand('claudeLauncher.listMailboxes', () => listMailboxesCmd()),
 
     vscode.commands.registerCommand('claudeLauncher.newAgentsTab', (profileArg) => newAgentsTab(profileArg)),
 
@@ -549,7 +627,9 @@ function activate(context) {
   // to dock beside a specific native item, this is the closest equivalent.
   function rebuildStatusBar() {
     for (const item of statusItems) item.dispose();
-    const messaging = messagingEnabled();
+    const enabled = mailboxesEnabled();
+    const project = currentProject();
+    const box = enabled && project ? bridge.mailboxFor(project) : undefined;
     const multiProfile = getProfiles().length > 1;
     const visible = getVisibleProfiles();
     const othersHidden = getProfiles().length > visible.length;
@@ -557,7 +637,7 @@ function activate(context) {
       const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1 + i);
       // Status bar text only renders codicons, not our SVG logo; $(sparkle)
       // is the closest built-in stand-in.
-      item.text = `$(sparkle) ${profile.name}${messaging ? ' $(comment-discussion)' : ''}`;
+      item.text = `$(sparkle) ${profile.name}${box ? ' $(comment-discussion)' : ''}`;
       item.color = themeColorFor(profile);
       const profileArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
       const tooltip = new vscode.MarkdownString();
@@ -569,13 +649,20 @@ function activate(context) {
           '[Project profile](command:claudeLauncher.setProjectProfile) · ' +
           '[Manage profiles](command:claudeLauncher.manageProfiles)'
       );
-      if (messaging) {
+      if (box) {
+        tooltip.appendMarkdown('\n\nMailbox **');
+        tooltip.appendText(box.name);
         tooltip.appendMarkdown(
-          `\n\nCross-profile messaging **on** · [Live chat](command:claudeLauncher.openLiveChat?${profileArgs}) · ` +
-            '[Turn off](command:claudeLauncher.toggleCrossProfileMessaging)'
+          `** · ${pluralize(bridge.livePeers(box.id).length, 'active session')} · ` +
+            `[Live chat](command:claudeLauncher.openLiveChat?${profileArgs}) · ` +
+            '[Switch](command:claudeLauncher.selectMailbox) · [All mailboxes](command:claudeLauncher.listMailboxes)'
         );
-      } else if (multiProfile) {
-        tooltip.appendMarkdown('\n\n[Turn on cross-profile messaging](command:claudeLauncher.toggleCrossProfileMessaging)');
+      } else if (enabled && project) {
+        tooltip.appendMarkdown(
+          '\n\nNo mailbox for this project · [Create one](command:claudeLauncher.createMailbox) · [Join one](command:claudeLauncher.selectMailbox)'
+        );
+      } else if (!enabled && multiProfile) {
+        tooltip.appendMarkdown('\n\n[Set up mailboxes](command:claudeLauncher.setUpMailboxes) so your agents can message each other');
       }
       tooltip.isTrusted = {
         enabledCommands: [
@@ -584,7 +671,10 @@ function activate(context) {
           'claudeLauncher.setProjectProfile',
           'claudeLauncher.manageProfiles',
           'claudeLauncher.openLiveChat',
-          'claudeLauncher.toggleCrossProfileMessaging',
+          'claudeLauncher.selectMailbox',
+          'claudeLauncher.listMailboxes',
+          'claudeLauncher.createMailbox',
+          'claudeLauncher.setUpMailboxes',
         ],
       };
       item.tooltip = tooltip;
@@ -598,15 +688,33 @@ function activate(context) {
   context.subscriptions.push({ dispose: () => statusItems.forEach((i) => i.dispose()) });
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (
-        e.affectsConfiguration('claudeLauncher.profiles') ||
-        e.affectsConfiguration('claudeLauncher.defaultProfile') ||
-        e.affectsConfiguration('claudeLauncher.crossProfileMessaging')
-      ) {
+      if (e.affectsConfiguration('claudeLauncher.profiles') || e.affectsConfiguration('claudeLauncher.defaultProfile')) {
         rebuildStatusBar();
       }
+      // Renamed, added, or removed profiles need their Claude config updated too.
+      if (e.affectsConfiguration('claudeLauncher.profiles')) syncMailboxes();
+      if (e.affectsConfiguration('claudeLauncher.mailboxes')) syncMailboxes({ report: true });
     })
   );
+
+  // Mailbox changes can come from Claude sessions or other windows.
+  if (mailboxesEnabled()) fs.mkdirSync(path.join(bridge.ROOT, 'mailboxes'), { recursive: true, mode: 0o700 });
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(vscode.Uri.file(path.join(bridge.ROOT, 'mailboxes')), '*/mailbox.json')
+  );
+  context.subscriptions.push(
+    watcher,
+    watcher.onDidChange(() => rebuildStatusBar()),
+    watcher.onDidCreate(() => rebuildStatusBar()),
+    watcher.onDidDelete(() => rebuildStatusBar()),
+    vscode.window.onDidChangeWindowState((state) => {
+      if (state.focused) rebuildStatusBar();
+    })
+  );
+
+  // 0.8.0 (never released) kept a launch-time bridge here; mailboxes replace it.
+  fs.rm(path.join(os.homedir(), '.claude-agents-bridge'), { recursive: true, force: true }, () => {});
+  syncMailboxes();
 
   // Startup never prompts: it needs exactly one folder and a profile it can
   // pick without asking (the workspace default, or the only one configured).

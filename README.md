@@ -50,13 +50,13 @@ Pin a project to one profile and only that button shows up there.
 
 ![Work and Personal profile buttons next to the notification bell](readme-assets/bottom-right.png)
 
-**💬 Agents that talk across accounts.**
-A Work agent can ask a Personal one whether the migration is merged and get the answer back in the same
-project. Turn on cross-profile messaging for a project, and every agent gets tools to find and message
-the others. Open a live chat tab to receive messages the moment they're sent.
-[See how it works →](docs/profile-communication.md)
+**💬 Agents that talk to each other, even across accounts.**
+Every session gets a human name, like **Kavya** or **Meera**. Put a project in a **mailbox**, and its
+agents can find each other and trade messages, whether they run on your Work account or your Personal
+one. Each session's status line shows its name, its mailbox, and who else is there.
+[See how mailboxes work →](docs/profile-communication.md)
 
-![A Work agent and a Personal live chat messaging each other in the same project](readme-assets/profile-communication.png)
+![Kavya (Work) and Meera (Personal) messaging each other in the billing mailbox](readme-assets/profile-communication.png)
 <sub>Illustration</sub>
 
 **🚀 Built for flow.**
@@ -90,7 +90,7 @@ That's it. Prefer a manual install? Grab the `.vsix` from
 
 ## Set up multiple accounts
 
-Run **Claude: Manage Profiles** from the Command Palette, or hover any status bar button and click
+Run **Claude Agents: Manage Profiles** from the Command Palette, or hover any status bar button and click
 **Manage profiles**. From there you can add a profile, pick its color, point it at its own config
 folder, rename it, or delete it, all without touching JSON.
 
@@ -116,7 +116,7 @@ The first time you launch a new profile, sign in once and you're done.
 
 ### Pin a project to one profile
 
-Open the project, run **Claude: Set Project Profile** (or hover a button → **Project profile**), and
+Open the project, run **Claude Agents: Set Project Profile** (or hover a button → **Project profile**), and
 pick one. That window then shows only that profile's button, and the keyboard shortcut opens it
 without asking. Pick **All profiles** to go back to showing every button.
 
@@ -124,7 +124,7 @@ Your choice is saved in the project's `.vscode/settings.json`, so it follows the
 file and anyone who shares your profile names gets the same setup.
 
 Pinning sets the default. It doesn't lock you out. Your other profiles are one command away:
-**Claude: Open Agents for Profile…**, **New Agents Tab for Profile…**, and **Open Live Chat for
+**Claude Agents: Open Agents for Profile…**, **New Agents Tab for Profile…**, and **Open Live Chat for
 Profile…** always let you pick, and the button's tooltip has an **Other profile…** link.
 
 ![Picking any profile in a project pinned to Work](readme-assets/profile-picker.png)
@@ -132,17 +132,22 @@ Profile…** always let you pick, and the button's tooltip has an **Other profil
 
 ---
 
-## Let agents talk across profiles
+## Mailboxes: let your agents talk
 
-Agents on different Claude accounts normally can't see each other. Turn on cross-profile messaging for a
-project (**Claude: Toggle Cross-Profile Messaging**), and:
+Agents on different Claude accounts normally can't see each other. Mailboxes fix that in two steps:
 
-- every agent you start there gets `list_peers` and `send_message`, and receives messages between steps
-- **Claude: Open Live Chat** opens a session that receives messages the moment they're sent, using
-  [Claude Code channels](https://code.claude.com/docs/en/channels) (research preview)
-- messages stay within the project, and never go into your repo or your Claude config
+1. **Claude Agents: Set Up Mailboxes**, once. This adds the `claude_mailbox` MCP server, three hooks,
+   and a status line segment to each profile's Claude config. It shows you everything before changing
+   anything, keeps your existing status line, and **Remove Mailboxes** undoes it all.
+2. **Claude Agents: Create Mailbox for This Project** (or **Select Mailbox…** to join one). Every
+   session in that folder then shares the mailbox, whichever profile it runs on.
 
-**[Read the full guide: Profile communication →](docs/profile-communication.md)**
+After that, every session gets a name, `list_peers` and `send_message` tools, and slash commands like
+`/mcp__claude_mailbox__init`. Messages reach a session between its steps. **Claude Agents: Open Live
+Chat** opens a session that receives them instantly through
+[Claude Code channels](https://code.claude.com/docs/en/channels) (research preview).
+
+**[Read the full guide →](docs/profile-communication.md)**
 
 ---
 
@@ -181,8 +186,8 @@ Worth knowing:
   in the project. **Set Project Profile → All profiles** does this for you.
 - **In a multi-root workspace,** workspace settings live in the `.code-workspace` file instead.
 - **Untrusted folders can't change the risky settings.** Until you trust a folder, its own settings
-  can't change `profiles`, `dangerouslySkipPermissions`, `openOnStartup`, or `crossProfileMessaging`,
-  and agents never open automatically there. A repo you just cloned can't make itself launch an agent or point Claude at
+  can't change `profiles`, `dangerouslySkipPermissions`, or `openOnStartup`, and agents never open
+  automatically there. (`mailboxes` is a user-only setting, so a folder can't turn it on either.) A repo you just cloned can't make itself launch an agent or point Claude at
   its own config folder.
 
 ---
@@ -192,15 +197,16 @@ Worth knowing:
 | You want to… | Do this |
 |---|---|
 | Open or jump back to your agents | Click the profile's button, or press `⌘⌥A` / `Ctrl+Alt+A` |
-| Open a second, separate agents tab | `⌘⌥⇧A` / `Ctrl+Alt+Shift+A`, or **Claude: New Agents Tab** |
+| Open a second, separate agents tab | `⌘⌥⇧A` / `Ctrl+Alt+Shift+A`, or **Claude Agents: New Agents Tab** |
 | Give each account its own shortcut | Add a keybinding for `claudeLauncher.openAgents` with `"args": { "name": "Work" }` |
-| Use one account in this project | **Claude: Set Project Profile**, or hover a button → **Project profile** |
-| Open a different profile than the project's default | **Claude: Open Agents for Profile…**, or hover → **Other profile…** |
-| Let agents on different accounts message each other | **Claude: Toggle Cross-Profile Messaging** ([guide](docs/profile-communication.md)) |
-| Get messages the instant they're sent | **Claude: Open Live Chat** |
+| Use one account in this project | **Claude Agents: Set Project Profile**, or hover a button → **Project profile** |
+| Open a different profile than the project's default | **Claude Agents: Open Agents for Profile…**, or hover → **Other profile…** |
+| Let agents on different accounts message each other | **Claude Agents: Set Up Mailboxes**, then **Create Mailbox for This Project** ([guide](docs/profile-communication.md)) |
+| See every mailbox and who's in it | **Claude Agents: List Mailboxes** |
+| Get messages the instant they're sent | **Claude Agents: Open Live Chat** |
 | Have agents open when you open a project | Turn on `claudeLauncher.openOnStartup` |
 | Approve each action yourself | Set `claudeLauncher.dangerouslySkipPermissions` to `false` |
-| Add an account, or change a color | **Claude: Manage Profiles**, or hover a button → **Manage profiles** |
+| Add an account, or change a color | **Claude Agents: Manage Profiles**, or hover a button → **Manage profiles** |
 
 Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by searching "Claude Agents".
 
@@ -210,9 +216,9 @@ Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by sea
 
 | Setting | Default | What it does |
 |---|---|---|
-| `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. Easiest to edit with **Claude: Manage Profiles**. |
-| `claudeLauncher.defaultProfile` | `""` | Set per workspace, easiest with **Claude: Set Project Profile**. Shows only this profile's button, and shortcuts use it without asking. |
-| `claudeLauncher.crossProfileMessaging` | `false` | Set per project. Lets agents on different profiles message each other. See the [guide](docs/profile-communication.md). |
+| `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. Easiest to edit with **Claude Agents: Manage Profiles**. |
+| `claudeLauncher.defaultProfile` | `""` | Set per workspace, easiest with **Claude Agents: Set Project Profile**. Shows only this profile's button, and shortcuts use it without asking. |
+| `claudeLauncher.mailboxes` | `false` | User-level. Sets up mailboxes in every profile's Claude config; turning it off removes them. Use **Set Up Mailboxes** / **Remove Mailboxes**. See the [guide](docs/profile-communication.md). |
 | `claudeLauncher.openOnStartup` | `false` | Opens the agents tab when a window opens. Works in single-folder workspaces when the profile is clear: your `defaultProfile`, or your only profile. |
 | `claudeLauncher.dangerouslySkipPermissions` | `true` | Launches with `--dangerously-skip-permissions`. Turn it off if you want Claude to ask before acting. |
 

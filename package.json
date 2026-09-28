@@ -1,7 +1,7 @@
 {
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
-  "description": "One status bar button per Claude profile — each opens `claude agents` in the current project's folder, as a pinned terminal tab.",
+  "description": "One status bar button per Claude profile opens `claude agents` for your project in a pinned tab. Mailboxes let your agents message each other, even across profiles.",
   "version": "0.8.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
@@ -12,17 +12,20 @@
   "engines": {
     "vscode": "^1.93.0"
   },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In untrusted folders, the folder's own settings can't change your profiles, skip permissions, auto-open agents, or turn on cross-profile messaging.",
+      "description": "In untrusted folders, the folder's own settings can't change your profiles, skip permissions, or auto-open agents.",
       "restrictedConfigurations": [
         "claudeLauncher.profiles",
         "claudeLauncher.dangerouslySkipPermissions",
-        "claudeLauncher.openOnStartup",
-        "claudeLauncher.crossProfileMessaging"
+        "claudeLauncher.openOnStartup"
       ]
     }
   },
@@ -31,47 +34,80 @@
     "commands": [
       {
         "command": "claudeLauncher.openAgents",
-        "title": "Claude: Open Agents",
+        "title": "Open Agents",
+        "category": "Claude Agents",
         "icon": "$(sparkle)"
       },
       {
         "command": "claudeLauncher.newAgentsTab",
-        "title": "Claude: New Agents Tab",
+        "title": "New Agents Tab",
+        "category": "Claude Agents",
         "icon": "$(add)"
       },
       {
         "command": "claudeLauncher.openAgentsForProfile",
-        "title": "Claude: Open Agents for Profile…",
+        "title": "Open Agents for Profile…",
+        "category": "Claude Agents",
         "icon": "$(account)"
       },
       {
         "command": "claudeLauncher.newAgentsTabForProfile",
-        "title": "Claude: New Agents Tab for Profile…",
-        "icon": "$(account)"
-      },
-      {
-        "command": "claudeLauncher.openLiveChatForProfile",
-        "title": "Claude: Open Live Chat for Profile…",
+        "title": "New Agents Tab for Profile…",
+        "category": "Claude Agents",
         "icon": "$(account)"
       },
       {
         "command": "claudeLauncher.openLiveChat",
-        "title": "Claude: Open Live Chat",
+        "title": "Open Live Chat",
+        "category": "Claude Agents",
         "icon": "$(comment-discussion)"
       },
       {
-        "command": "claudeLauncher.toggleCrossProfileMessaging",
-        "title": "Claude: Toggle Cross-Profile Messaging",
+        "command": "claudeLauncher.openLiveChatForProfile",
+        "title": "Open Live Chat for Profile…",
+        "category": "Claude Agents",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "claudeLauncher.setUpMailboxes",
+        "title": "Set Up Mailboxes",
+        "category": "Claude Agents",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "claudeLauncher.createMailbox",
+        "title": "Create Mailbox for This Project",
+        "category": "Claude Agents",
+        "icon": "$(add)"
+      },
+      {
+        "command": "claudeLauncher.selectMailbox",
+        "title": "Select Mailbox for This Project",
+        "category": "Claude Agents",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "claudeLauncher.listMailboxes",
+        "title": "List Mailboxes",
+        "category": "Claude Agents",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "claudeLauncher.removeMailboxes",
+        "title": "Remove Mailboxes",
+        "category": "Claude Agents",
+        "icon": "$(trash)"
       },
       {
         "command": "claudeLauncher.setProjectProfile",
-        "title": "Claude: Set Project Profile",
+        "title": "Set Project Profile",
+        "category": "Claude Agents",
         "icon": "$(pinned)"
       },
       {
         "command": "claudeLauncher.manageProfiles",
-        "title": "Claude: Manage Profiles",
+        "title": "Manage Profiles",
+        "category": "Claude Agents",
         "icon": "$(settings-gear)"
       }
     ],
@@ -97,11 +133,17 @@
         },
         "claudeLauncher.profiles": {
           "type": "array",
-          "default": [{ "name": "Claude" }],
+          "default": [
+            {
+              "name": "Claude"
+            }
+          ],
           "markdownDescription": "One status bar button per profile. **[Manage profiles](command:claudeLauncher.manageProfiles)** to add, rename, recolor, or remove them without editing JSON.\n\n`configDir` sets `CLAUDE_CONFIG_DIR` for that profile (e.g. `~/.claude-work`); leave it out for the default `~/.claude`. Names must be unique.",
           "items": {
             "type": "object",
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "properties": {
               "name": {
                 "type": "string",
@@ -113,7 +155,16 @@
               },
               "color": {
                 "type": "string",
-                "enum": ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"],
+                "enum": [
+                  "black",
+                  "red",
+                  "green",
+                  "yellow",
+                  "blue",
+                  "magenta",
+                  "cyan",
+                  "white"
+                ],
                 "description": "Tints this profile's status bar button and terminal tab, using your theme's terminal colors."
               }
             }
@@ -124,10 +175,11 @@
           "default": "",
           "markdownDescription": "Name of the profile this workspace uses. When set, only that profile's button is shown, and the keyboard shortcut and commands use it without asking. **[Pick one for this project](command:claudeLauncher.setProjectProfile)**, or set it in **Workspace** settings, e.g. `Work` for work repos."
         },
-        "claudeLauncher.crossProfileMessaging": {
+        "claudeLauncher.mailboxes": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Let Claude sessions in the same project talk to each other across profiles (e.g. a Work agent messaging a Personal one). Agents get `list_peers` and `send_message` tools, and incoming messages are handed to them between steps. **Claude: Open Live Chat** adds a session that receives messages instantly through Claude Code channels (research preview). Messages stay within the project. **[Toggle for this project](command:claudeLauncher.toggleCrossProfileMessaging)**"
+          "scope": "application",
+          "markdownDescription": "Let your Claude sessions message each other, across profiles. When on, each profile's Claude config gets the `claude_mailbox` MCP server, three hooks, and a status line segment showing the session's name and mailbox. Your existing status line is kept. Turning it off removes all of that again. Mailboxes and their history live in `~/.claude-mailboxes/`.\n\n**[Set up](command:claudeLauncher.setUpMailboxes)** · **[Create a mailbox for this project](command:claudeLauncher.createMailbox)** · **[List mailboxes](command:claudeLauncher.listMailboxes)**"
         },
         "claudeLauncher.openOnStartup": {
           "type": "boolean",

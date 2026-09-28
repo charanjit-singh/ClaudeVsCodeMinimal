@@ -6,27 +6,39 @@ All notable changes to this project are documented here. Format loosely follows
 ## [0.8.0]
 
 ### Added
-- **Cross-profile messaging** (`claudeLauncher.crossProfileMessaging`, off by default, set per project):
-  agents on different Claude accounts in the same project can find and message each other. Turn it on
-  with **Claude: Toggle Cross-Profile Messaging**. See [Profile communication](docs/profile-communication.md).
-  - Agents started from an agents tab get `list_peers`, `send_message`, `read_messages`, and
-    `set_label`. Messages reach them after each tool call, when you send a prompt, and before they go
-    idle.
-  - **Claude: Open Live Chat** opens a session that receives messages instantly through Claude Code
-    channels (research preview; loaded with `--dangerously-load-development-channels`).
-  - Each project has its own mailbox in `~/.claude-agents-bridge/`. The bridge is passed at launch, so
-    nothing is written to your repo or your Claude config, and it runs on VS Code's bundled Node.
-  - Messages to a profile with no running session wait for the next one, and a session that closes
-    with unread mail hands it back to that queue.
-- **Claude: Open Agents for Profile…**, **New Agents Tab for Profile…**, and **Open Live Chat for
-  Profile…** always let you pick a profile, even in a project pinned to another one. The button's
-  tooltip gets an **Other profile…** link when profiles are hidden.
-- [Profile communication](docs/profile-communication.md) guide, and new README illustrations.
+- **Mailboxes: agents that talk to each other, even across Claude accounts.**
+  - **Claude Agents: Set Up Mailboxes** installs, into each profile's own Claude config, the
+    `claude_mailbox` MCP server (user scope, via `claude mcp add`), three hooks, and a status line
+    segment. Every session of every profile has it, however it was started: agent view, a resumed
+    session, or `claude` in a terminal. **Remove Mailboxes** undoes all of it, and profiles you add,
+    rename, or remove later are kept in sync.
+  - Named mailboxes live in `~/.claude-mailboxes/`. Each covers one or more project folders, including
+    their subfolders and worktrees, so related repos can share one. Manage them with **Create Mailbox
+    for This Project**, **Select Mailbox for This Project**, and **List Mailboxes**, or from inside
+    Claude. Running sessions pick up changes within seconds.
+  - Every session gets a human name (Kavya, Meera, …) that's unique while it runs. Messages go to a
+    name or to a whole profile, and wait in a queue when nobody on that profile is around.
+  - The status line shows the session's name, mailbox, peers, and unread count. An existing status
+    line is kept and shown first.
+  - Tools: `list_peers`, `send_message`, `read_messages`, `set_label`, `list_mailboxes`,
+    `create_mailbox`, `select_mailbox`, `leave_mailbox`. Slash commands: `/mcp__claude_mailbox__init`,
+    `__peers`, `__inbox`, `__send`.
+  - Messages arrive between steps: after tool calls, with your prompt, and before a session stops.
+    **Open Live Chat** opens a session that receives them instantly through Claude Code channels
+    (research preview).
+  - Pre-warmed spare sessions don't count as peers until they get their first prompt.
+- **Open Agents / New Agents Tab / Open Live Chat for Profile…** always let you pick a profile, even
+  in a project pinned to another one. The button's tooltip gets an **Other profile…** link.
+- [Mailboxes guide](docs/profile-communication.md) and new README illustrations.
+
+### Changed
+- Every command is now under **Claude Agents:** in the Command Palette. Before, they were a mix of
+  "Claude:" names.
 
 ### Security
-- Until you trust a folder, its own settings can't turn on `crossProfileMessaging`.
-- Messages from other agents reach an agent with a note to treat them as a collaborator's requests, not
-  as your instructions.
+- Messages from other agents reach a session with a note to treat them as a collaborator's requests,
+  not as your instructions.
+- `mailboxes` is a user-level setting, so a folder's own settings can't turn it on.
 
 ## [0.7.0]
 
