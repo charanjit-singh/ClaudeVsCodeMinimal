@@ -244,8 +244,12 @@ cd ClaudeVsCodeMinimal
 code .            # then press F5 to launch an Extension Development Host
 ```
 
-Pushing a `vX.Y.Z` tag builds the `.vsix` and publishes a GitHub Release automatically, using that
-version's notes from the [CHANGELOG](CHANGELOG.md).
+Pushing a `vX.Y.Z` tag builds the `.vsix`, publishes a GitHub Release with that version's notes from
+the [CHANGELOG](CHANGELOG.md), and publishes to the VS Code Marketplace (when the `VSCE_PAT` secret is
+set).
+
+The extension is three files: `extension.js` (VS Code side), `mailboxes.js` (installs mailboxes into
+each Claude profile), and `bridge/bridge.js` (the MCP server, hook, and status line that sessions run).
 
 ---
 
