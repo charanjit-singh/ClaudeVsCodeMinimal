@@ -53,10 +53,14 @@ Pin a project to one profile and only that button shows up there.
 **💬 Agents that talk to each other, even across accounts.**
 Every session gets a human name, like **Kavya** or **Meera**. Put a project in a **mailbox**, and its
 agents can find each other and trade messages, whether they run on your Work account or your Personal
-one. Each session's status line shows its name, its mailbox, and who else is there.
+one. A message **wakes up** the agent it's for, even if it was sitting idle.
 [See how mailboxes work →](docs/profile-communication.md)
 
-![Kavya (Work) and Meera (Personal) messaging each other in the billing mailbox](readme-assets/profile-communication.png)
+**📊 Know which account you're burning.**
+A band above every prompt shows the session's profile and signed-in account, how full its context is,
+your plan's 5-hour and 7-day limits (yellow at 70%, red at 90%), and what the session has cost.
+
+![Kavya (Work) asks Meera (Personal) a question; Meera is woken by the message and answers. Each has a band above its prompt with mailbox, account, context, and plan limits.](readme-assets/profile-communication.png)
 <sub>Illustration</sub>
 
 **🚀 Built for flow.**
@@ -124,8 +128,9 @@ Your choice is saved in the project's `.vscode/settings.json`, so it follows the
 file and anyone who shares your profile names gets the same setup.
 
 Pinning sets the default. It doesn't lock you out. Your other profiles are one command away:
-**Claude Agents: Open Agents for Profile…**, **New Agents Tab for Profile…**, and **Open Live Chat for
-Profile…** always let you pick, and the button's tooltip has an **Other profile…** link.
+**Claude Agents: Open Agents for Profile…** and **New Agents Tab for Profile…** always let you pick,
+and the button's tooltip has an **Other profile…** link. Hover any button to see which account that
+profile is signed in with.
 
 ![Picking any profile in a project pinned to Work](readme-assets/profile-picker.png)
 <sub>Illustration</sub>
@@ -136,16 +141,17 @@ Profile…** always let you pick, and the button's tooltip has an **Other profil
 
 Agents on different Claude accounts normally can't see each other. Mailboxes fix that in two steps:
 
-1. **Claude Agents: Set Up Mailboxes**, once. This adds the `claude_mailbox` MCP server, three hooks,
-   and a status line segment to each profile's Claude config. It shows you everything before changing
-   anything, keeps your existing status line, and **Remove Mailboxes** undoes it all.
-2. **Claude Agents: Create Mailbox for This Project** (or **Select Mailbox…** to join one). Every
-   session in that folder then shares the mailbox, whichever profile it runs on.
+1. **Claude Agents: Set Up Mailboxes**, once. This installs the `agent-mailbox`
+   [mod](https://code.claude.com/docs/en/plugins/mods/overview) into each profile as a single folder,
+   `skills/agent-mailbox`. Your settings, hooks, and status line aren't touched, and
+   **Remove Mailboxes** deletes the folder again.
+2. **Claude Agents: Create Mailbox for This Project** (or **Select Mailbox…** to join one), or type
+   `/mailbox init` in any session. Every session in that folder then shares the mailbox, whichever
+   profile it runs on.
 
-After that, every session gets a name, `list_peers` and `send_message` tools, and slash commands like
-`/mcp__claude_mailbox__init`. Messages reach a session between its steps. **Claude Agents: Open Live
-Chat** opens a session that receives them instantly through
-[Claude Code channels](https://code.claude.com/docs/en/channels) (research preview).
+After that, every session gets a name, `list_peers` and `send_message` tools, and a `/mailbox` command.
+When a message arrives you get a toast, and the recipient is woken to handle it as soon as it's idle.
+Needs Claude Code 2.1.289 or newer.
 
 **[Read the full guide →](docs/profile-communication.md)**
 
@@ -203,7 +209,7 @@ Worth knowing:
 | Open a different profile than the project's default | **Claude Agents: Open Agents for Profile…**, or hover → **Other profile…** |
 | Let agents on different accounts message each other | **Claude Agents: Set Up Mailboxes**, then **Create Mailbox for This Project** ([guide](docs/profile-communication.md)) |
 | See every mailbox and who's in it | **Claude Agents: List Mailboxes** |
-| Get messages the instant they're sent | **Claude Agents: Open Live Chat** |
+| See a session's account, context, and plan limits | The band above its prompt (`/mailbox hide` / `show`) |
 | Have agents open when you open a project | Turn on `claudeLauncher.openOnStartup` |
 | Approve each action yourself | Set `claudeLauncher.dangerouslySkipPermissions` to `false` |
 | Add an account, or change a color | **Claude Agents: Manage Profiles**, or hover a button → **Manage profiles** |
@@ -249,7 +255,9 @@ the [CHANGELOG](CHANGELOG.md), and publishes to the VS Code Marketplace (when th
 set).
 
 The extension is three files: `extension.js` (VS Code side), `mailboxes.js` (installs mailboxes into
-each Claude profile), and `bridge/bridge.js` (the MCP server, hook, and status line that sessions run).
+each Claude profile), and `bridge/bridge.js` (the mailbox files). The mod lives in `mod/agent-mailbox`:
+run `claude plugin validate mod/agent-mailbox` and `claude plugin test mod/agent-mailbox`, or try it with
+`claude --plugin-dir mod/agent-mailbox`.
 
 ---
 

@@ -6,29 +6,29 @@ All notable changes to this project are documented here. Format loosely follows
 ## [0.8.0]
 
 ### Added
-- **Mailboxes: agents that talk to each other, even across Claude accounts.**
-  - **Claude Agents: Set Up Mailboxes** installs, into each profile's own Claude config, the
-    `claude_mailbox` MCP server (user scope, via `claude mcp add`), three hooks, and a status line
-    segment. Every session of every profile has it, however it was started: agent view, a resumed
-    session, or `claude` in a terminal. **Remove Mailboxes** undoes all of it, and profiles you add,
-    rename, or remove later are kept in sync.
+- **Mailboxes: agents that message and wake each other, even across Claude accounts.** Built as the
+  `agent-mailbox` [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) (needs Claude
+  Code 2.1.289 or newer).
+  - **Claude Agents: Set Up Mailboxes** installs the mod into each profile as one folder,
+    `skills/agent-mailbox`. Settings, hooks, and status lines are never touched, and **Remove Mailboxes**
+    deletes the folder again. Profiles you add, rename, or remove later stay in sync.
   - Named mailboxes live in `~/.claude-mailboxes/`. Each covers one or more project folders, including
     their subfolders and worktrees, so related repos can share one. Manage them with **Create Mailbox
-    for This Project**, **Select Mailbox for This Project**, and **List Mailboxes**, or from inside
-    Claude. Running sessions pick up changes within seconds.
-  - Every session gets a human name (Kavya, Meera, …) that's unique while it runs. Messages go to a
-    name or to a whole profile, and wait in a queue when nobody on that profile is around.
-  - The status line shows the session's name, mailbox, peers, and unread count. An existing status
-    line is kept and shown first.
+    for This Project**, **Select Mailbox for This Project**, and **List Mailboxes**, or with
+    `/mailbox init | select | list | leave` inside Claude.
+  - Every session gets a human name (Kavya, Meera, …), unique while it runs. Messages go to a name or to
+    a whole profile, and wait in a queue when nobody on that profile is around.
+  - **A message wakes its recipient.** You get a toast, and the message arrives as a turn of its own once
+    the session is idle, so it never interrupts a busy one.
   - Tools: `list_peers`, `send_message`, `read_messages`, `set_label`, `list_mailboxes`,
-    `create_mailbox`, `select_mailbox`, `leave_mailbox`. Slash commands: `/mcp__claude_mailbox__init`,
-    `__peers`, `__inbox`, `__send`.
-  - Messages arrive between steps: after tool calls, with your prompt, and before a session stops.
-    **Open Live Chat** opens a session that receives them instantly through Claude Code channels
-    (research preview).
+    `create_mailbox`, `select_mailbox`, `leave_mailbox`.
   - Pre-warmed spare sessions don't count as peers until they get their first prompt.
-- **Open Agents / New Agents Tab / Open Live Chat for Profile…** always let you pick a profile, even
-  in a project pinned to another one. The button's tooltip gets an **Other profile…** link.
+- **A band above every prompt** with the session's name, mailbox, peers, and unread count, plus its
+  **profile and signed-in account, context use, 5-hour and 7-day plan limits** (yellow at 70%, red at
+  90%), and cost. `/mailbox hide` / `show` toggles it.
+- Hovering a profile's status bar button shows which account it's signed in with.
+- **Open Agents / New Agents Tab for Profile…** always let you pick a profile, even in a project pinned
+  to another one. The button's tooltip gets an **Other profile…** link.
 - [Mailboxes guide](docs/profile-communication.md) and new README illustrations.
 
 ### Changed
@@ -36,8 +36,8 @@ All notable changes to this project are documented here. Format loosely follows
   "Claude:" names.
 
 ### Security
-- Messages from other agents reach a session with a note to treat them as a collaborator's requests,
-  not as your instructions.
+- Delivered messages say they come from another Claude session, and ask Claude to treat them as a
+  collaborator's requests rather than your instructions.
 - `mailboxes` is a user-level setting, so a folder's own settings can't turn it on.
 
 ## [0.7.0]

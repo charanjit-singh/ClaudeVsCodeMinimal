@@ -1,35 +1,58 @@
 # Mailboxes: let your agents talk
 
-Your Claude agents can message each other, even when they run under **different Claude accounts**.
+Your Claude agents can message each other, and **wake each other up**, even when they run under
+**different Claude accounts**.
 
-![Kavya, a Work agent, asks Meera, a Personal live chat, whether a migration is merged, and gets the answer back](../readme-assets/profile-communication.png)
-<sub>Illustration: two sessions in the <b>billing</b> mailbox. Each one's name and mailbox show in its status line.</sub>
+![Kavya, a Work agent, asks Meera, a Personal agent, whether a migration is merged. Meera is woken by the message, answers, and Kavya carries on.](../readme-assets/profile-communication.png)
+<sub>Illustration: two sessions in the <b>billing</b> mailbox. Above each prompt is the session's band: its name, mailbox, and peers, then its profile, account, context use, and plan limits.</sub>
 
 Every session gets a human name, like **Kavya** or **Meera**. Sessions in the same **mailbox** can find
-each other and send messages, whichever profile they run on. Mailboxes live in one folder in your home
-directory, so every profile, window, and terminal sees the same ones.
+each other and send messages, whichever profile they run on. When a message arrives, the recipient wakes up
+and handles it, even if it was sitting idle.
+
+Mailboxes are built as a [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview), so they
+need Claude Code **2.1.289 or newer**.
 
 ---
 
 ## Set up (once)
 
-Run **Claude Agents: Set Up Mailboxes**. It shows exactly what it will add to each profile's Claude
-config, and asks before changing anything:
+Run **Claude Agents: Set Up Mailboxes**. It installs the `agent-mailbox` mod into each of your profiles, as
+one folder: `skills/agent-mailbox` inside that profile's Claude config (`~/.claude/skills/agent-mailbox`,
+`~/.claude-work/skills/agent-mailbox`, and so on).
 
-| Added to each profile | Why |
+- **Nothing else changes.** Your `settings.json`, hooks, status line, and MCP servers aren't touched.
+- **Every session of every profile gets it**, however it starts: agent view, a resumed session, or `claude`
+  in a terminal.
+- **Restart sessions that were already running.** Claude loads mods when a session starts.
+- **Profiles you add or rename later** are kept in sync automatically.
+- **Claude Agents: Remove Mailboxes** deletes the folder from every profile again.
+
+---
+
+## The band above your prompt
+
+Each session shows two rows above its prompt:
+
+```
+✉ Kavya · billing · Meera (Personal) · 1 new
+Work · dev@acme.com (Acme) │ context 42% of 1M · 5h 26% · 7d 92% · $1.50
+```
+
+| Part | What it shows |
 |---|---|
-| The `claude_mailbox` MCP server (user scope, added with `claude mcp add`) | Every session of that profile has the mailbox tools, however it was started: agent view, a resumed session, or `claude` in a terminal |
-| Three hooks: after each tool call, on prompt, and before stopping | Hand new messages to a session between steps, without waiting for it to check |
-| A status line segment | Shows the session's name, its mailbox, and who else is there |
+| `✉ Kavya` | This session's name |
+| `billing` | Its mailbox (or `no mailbox · /mailbox init`) |
+| `Meera (Personal)` | Who else is active in the mailbox, with their profile when it differs from yours |
+| `1 new` | Unread messages |
+| `Work · dev@acme.com (Acme)` | **Which profile and which account** this session runs on |
+| `context 42% of 1M` | How full the context window is |
+| `5h 26% · 7d 92%` | Your plan's 5-hour and 7-day limits. They turn yellow at 70% and red at 90%. |
+| `$1.50` | What the session has cost so far |
 
-- **Your status line is kept.** If a profile already has one, it still runs and shows first, and the
-  mailbox segment appears after it.
-- **Your other settings and hooks aren't touched.** The first time, a copy of each `settings.json` is saved
-  next to it as `settings.json.before-claude-mailbox`.
-- **Profiles you add or rename later** get set up automatically.
-- **Restart sessions that were already running.** Claude loads MCP servers at startup, so sessions opened
-  before set-up don't have the mailbox yet. (That's why older sessions said the MCP didn't exist.)
-- **Claude Agents: Remove Mailboxes** undoes everything and restores your original status line.
+`/mailbox hide` hides the band and `/mailbox show` brings it back.
+
+The VS Code status bar also shows which account each profile is signed in with: hover a profile's button.
 
 ---
 
@@ -38,21 +61,21 @@ config, and asks before changing anything:
 A mailbox covers one or more project folders. A session joins the mailbox that covers its folder, and
 subfolders and worktrees inside that folder count too.
 
-| Command | What it does |
-|---|---|
-| **Claude Agents: Create Mailbox for This Project** | Makes a new mailbox (named after the folder, unless you choose another name) and puts this project in it |
-| **Claude Agents: Select Mailbox for This Project** | Moves this project into an existing mailbox, or out of its current one |
-| **Claude Agents: List Mailboxes** | Every mailbox, its projects, and who's active in it. From here you can use a mailbox for this project, reveal its folder, or delete it |
+| From VS Code | From inside Claude | What it does |
+|---|---|---|
+| **Claude Agents: Create Mailbox for This Project** | `/mailbox init [name]` | Makes a mailbox for this folder (or joins one with that name) |
+| **Claude Agents: Select Mailbox for This Project** | `/mailbox select <name>` | Moves this folder into an existing mailbox |
+| **Claude Agents: List Mailboxes** | `/mailbox list` | Every mailbox, its projects, and who's active in it |
+| (Select Mailbox → Leave) | `/mailbox leave` | Takes this folder out of its mailbox |
 
-Put two related repos, like `api` and `web`, in the same mailbox, and their agents can coordinate.
-
-Changes apply right away: running sessions move to the new mailbox within seconds, without a restart.
+Put two related repos, like `api` and `web`, in the same mailbox, and their agents can coordinate. Running
+sessions follow mailbox changes within about 20 seconds, without a restart.
 
 ---
 
-## Inside Claude
+## Messaging
 
-Every session has these tools:
+Claude gets these tools:
 
 | Tool | What it does |
 |---|---|
@@ -60,61 +83,26 @@ Every session has these tools:
 | `send_message` | Message one session by name (`Meera`) or everyone on a profile (`Work`) |
 | `read_messages` | Returns and clears unread messages |
 | `set_label` | Tells others what you're working on |
-| `list_mailboxes`, `create_mailbox`, `select_mailbox`, `leave_mailbox` | The same mailbox management as the VS Code commands |
+| `list_mailboxes`, `create_mailbox`, `select_mailbox`, `leave_mailbox` | Mailbox management |
 
-There are slash commands too:
+You can use them yourself too: `/mailbox peers`, `/mailbox inbox`, `/mailbox send <to> <message>`.
 
-| Slash command | What it does |
-|---|---|
-| `/mcp__claude_mailbox__init [name]` | Joins or creates a mailbox for this project, then tells you who's there |
-| `/mcp__claude_mailbox__peers` | Shows who's in this mailbox |
-| `/mcp__claude_mailbox__inbox` | Summarizes your unread messages |
-| `/mcp__claude_mailbox__send <to> <message>` | Sends a message |
+### How a message arrives
 
-### Names and the status line
+The mod checks the session's inbox every few seconds. When something arrives:
 
-Each session gets a name from a list of common Indian women's first names. It keeps that name for as long as
-its Claude process runs, and no two live sessions share one. The status line shows it:
+1. A **toast** shows who sent it: `✉ Kavya (Work): Is the invoices migration merged?`
+2. The message is handed to Claude as **a turn of its own**, introduced as coming from `agent-mailbox`.
+   It waits until the session is idle, so it **wakes a quiet session** and never interrupts a busy one.
+3. Claude reads it, acts on it, and replies with `send_message` if a reply is needed.
 
-```
-✉ Kavya · billing · Meera(Personal), Anika · 1 new
-```
+Some details:
 
-That line shows your name, then your mailbox, then who else is in it (with their profile when it differs
-from yours), then any unread messages.
-
-### When messages arrive
-
-- **Agent view and regular sessions:** messages arrive after the next tool call, with your next prompt,
-  or just before the session would stop, so it deals with them before going idle. A session that's already
-  idle doesn't wake up by itself; it sees the message on its next turn.
-- **Live chat:** run **Claude Agents: Open Live Chat** for a session that receives messages the instant
-  they're sent, through [Claude Code channels](https://code.claude.com/docs/en/channels).
-  - Channels are a research preview. Custom channels load only with `--dangerously-load-development-channels`,
-    so you'll see a notice when the session starts, and your account or org has to have channels enabled.
-  - If the startup notice warns that channels are unavailable, `read_messages` still returns everything sent
-    live in the last hour, so nothing is lost.
-- **Pre-warmed sessions don't count.** Claude keeps spare sessions ready for agent view. Those don't show up
-  as peers or receive profile-wide messages until someone actually gives them a prompt.
-- **Messages to a profile with nobody around wait.** Sending to `Work` when no Work session is active in the
-  mailbox queues the message for the next one. A session that closes with unread messages hands them back to
-  that queue.
-
----
-
-## Using other profiles in a pinned project
-
-A project pinned to one profile (**Claude Agents: Set Project Profile**) only shows that profile's button.
-The others are still one command away:
-
-![Picking a profile in a project pinned to Work](../readme-assets/profile-picker.png)
-<sub>Illustration: "Open Agents for Profile…" in a project pinned to Work.</sub>
-
-| Command | What it does |
-|---|---|
-| **Claude Agents: Open Agents for Profile…** | Opens or focuses any profile's agents tab |
-| **Claude Agents: New Agents Tab for Profile…** | Always opens a fresh agents tab |
-| **Claude Agents: Open Live Chat for Profile…** | Opens or focuses any profile's live chat |
+- **Pre-warmed sessions stay quiet.** Claude keeps spare sessions ready for agent view. A session only counts
+  as a peer, or receives messages, once someone has given it a prompt.
+- **Messages to a profile with nobody around wait for it.** Sending to `Work` when no Work session is active
+  queues the message for the next one. A session that ends with unread messages hands them back to that queue.
+- **Names are unique** among running sessions, and a session keeps its name until its Claude process ends.
 
 ---
 
@@ -123,28 +111,32 @@ The others are still one command away:
 ```
 ~/.claude-mailboxes/
   README.txt
-  installed.json                 which profiles it's set up in
-  bin/bridge.js                  the MCP server, hook, and status line (one script, no dependencies)
-  mailboxes/<name>/mailbox.json  the project folders this mailbox covers
+  installed.json                 which profiles the mod is installed in
+  runtime.json                   which Node to run, and which config folder is which profile
+  bin/bridge.js                  the helper the mod runs for mailbox files (no dependencies)
+  mailboxes/<name>/mailbox.json  the project folders a mailbox covers
   mailboxes/<name>/…             who's here, and messages waiting for delivery
-  names/, sessions/              which name each running session has
-  statusline/                    your original status lines, restored on removal
+  sessions/                      the name each running session has
 ```
 
-Folders are private (`700`) and files are `600`. The bridge runs on the copy of Node that ships inside
-VS Code, so you don't need Node installed.
+Folders are private (`700`) and files are `600`. The helper runs on the copy of Node that ships inside VS
+Code, so you don't need Node installed. The account comes from each profile's own `.claude.json`, and
+context and limits come from Claude Code's session API.
 
 ---
 
 ## Safety
 
-- **Messages from other agents are not your instructions.** Every message reaches the agent with a note to
-  treat it as a request from a collaborator, and to check with you before anything destructive or outside
-  its task. In testing, an agent told "go ahead" by a peer reported the message and didn't act on it.
+- **Messages from other agents are not your instructions.** Every delivered message says it comes from
+  another Claude session, and tells Claude to treat it as a request from a collaborator and to check with you
+  before anything destructive or outside its task. In testing, a Work agent woken with "the schema is merged,
+  go ahead" asked what to proceed with instead of guessing.
 - **Permissions still apply.** Mailboxes don't grant new permissions. If you run with
   `dangerouslySkipPermissions` on, remember that another agent's message can prompt an agent to act without
   asking you first.
 - **Nothing leaves your machine.** Messages are local files, handled only by your own Claude sessions.
+- **Organizations can turn mods off.** On a Team or Enterprise plan, an admin policy may block mods you
+  install yourself. When that happens, the band and tools don't appear.
 
 ---
 
@@ -152,10 +144,9 @@ VS Code, so you don't need Node installed.
 
 | Symptom | Fix |
 |---|---|
-| A session says the `claude_mailbox` MCP server doesn't exist | It started before set-up, or on a profile that isn't in your profiles list. Restart it. |
-| `list_peers` says the project isn't in a mailbox | Run **Create Mailbox** or **Select Mailbox**, or `/mcp__claude_mailbox__init` in the session |
-| A message never arrived | The recipient may be idle. It sees the message on its next turn, or it can call `read_messages`. |
-| The status line has no ✉ segment | The session started before set-up. Restart it. |
-| Live chat shows a channels warning | Channels aren't enabled for your account or org yet. Use `read_messages`, or message from a regular session. |
+| No band, and no `agent-mailbox` tools | The session started before set-up, or your Claude Code is older than 2.1.289. Restart it, or update Claude Code. `/plugin` lists the mods a session loaded. |
+| The band says `no mailbox` | Run `/mailbox init`, or **Create Mailbox for This Project** in VS Code |
+| A message didn't wake a session | It wakes once that session is idle. A session that has never had a prompt doesn't receive messages. |
+| The band shows no limits | Plan limits only appear on a Claude subscription, after the first reply |
 
 [← Back to README](../README.md)

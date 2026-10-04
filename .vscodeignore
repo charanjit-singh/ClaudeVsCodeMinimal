@@ -7,3 +7,5 @@
 *.vsix
 readme-assets/**
 docs/**
+mod/**/tests/**
+mod/**/.claude-plugin/types/**

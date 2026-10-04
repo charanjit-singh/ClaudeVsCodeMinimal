@@ -1,7 +1,7 @@
 {
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
-  "description": "One status bar button per Claude profile opens `claude agents` for your project in a pinned tab. Mailboxes let your agents message each other, even across profiles.",
+  "description": "One status bar button per Claude profile opens `claude agents` for your project in a pinned tab. Mailboxes let your agents message and wake each other, even across profiles.",
   "version": "0.8.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
@@ -55,18 +55,6 @@
         "title": "New Agents Tab for Profile…",
         "category": "Claude Agents",
         "icon": "$(account)"
-      },
-      {
-        "command": "claudeLauncher.openLiveChat",
-        "title": "Open Live Chat",
-        "category": "Claude Agents",
-        "icon": "$(comment-discussion)"
-      },
-      {
-        "command": "claudeLauncher.openLiveChatForProfile",
-        "title": "Open Live Chat for Profile…",
-        "category": "Claude Agents",
-        "icon": "$(comment-discussion)"
       },
       {
         "command": "claudeLauncher.setUpMailboxes",
@@ -179,7 +167,7 @@
           "type": "boolean",
           "default": false,
           "scope": "application",
-          "markdownDescription": "Let your Claude sessions message each other, across profiles. When on, each profile's Claude config gets the `claude_mailbox` MCP server, three hooks, and a status line segment showing the session's name and mailbox. Your existing status line is kept. Turning it off removes all of that again. Mailboxes and their history live in `~/.claude-mailboxes/`.\n\n**[Set up](command:claudeLauncher.setUpMailboxes)** · **[Create a mailbox for this project](command:claudeLauncher.createMailbox)** · **[List mailboxes](command:claudeLauncher.listMailboxes)**"
+          "markdownDescription": "Let your Claude sessions message each other, across profiles. When on, each profile gets the `agent-mailbox` mod (one folder, `skills/agent-mailbox`): every session gets a name, mailbox tools and a `/mailbox` command, wakes up when a message arrives, and shows a band above the prompt with its mailbox, account, context use and plan limits. Your settings, hooks and status line are not touched. Turning it off removes the folder again. Mailboxes live in `~/.claude-mailboxes/`.\n\n**[Set up](command:claudeLauncher.setUpMailboxes)** · **[Create a mailbox for this project](command:claudeLauncher.createMailbox)** · **[List mailboxes](command:claudeLauncher.listMailboxes)**"
         },
         "claudeLauncher.openOnStartup": {
           "type": "boolean",

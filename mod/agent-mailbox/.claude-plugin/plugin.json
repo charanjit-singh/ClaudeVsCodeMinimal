@@ -1,0 +1,7 @@
+{
+  "name": "agent-mailbox",
+  "version": "1.0.0",
+  "description": "Mailboxes for Claude sessions: names, cross-profile messages that wake idle sessions, and a band with your account, context, and plan limits.",
+  "author": { "name": "Charanjit Singh" },
+  "types": "./types/index.d.ts"
+}

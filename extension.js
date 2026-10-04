@@ -42,8 +42,16 @@ function capitalize(s) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-function terminalName(profile, kind = 'agents') {
-  return `${kind === 'chat' ? 'Claude Chat' : 'Claude Agents'} — ${profile.name}`;
+function terminalName(profile) {
+  return `Claude Agents — ${profile.name}`;
+}
+
+// Which account a profile is signed in with, from its own Claude config.
+function accountLabel(profile) {
+  const a = bridge.account(profile.configDir ? expandHome(profile.configDir) : undefined);
+  if (!a) return undefined;
+  if (a.email) return a.org ? `${a.email} (${a.org})` : a.email;
+  return a.kind;
 }
 
 function mailboxesEnabled() {
@@ -190,11 +198,11 @@ function activate(context) {
 
   const extensionPath = context.extensionPath || (context.extensionUri && context.extensionUri.fsPath);
 
-  // Tracks each profile's tabs (by profile name) so a plain click focuses
-  // them again: agent view tabs and live-chat tabs separately. VS Code gives
+  // Tracks each profile's agents tab (by profile name) so a plain click
+  // focuses it again. VS Code gives
   // extensions no way to tell a click from a modifier-click on a custom
   // command, so "new tab" is a separate command.
-  const tabs = { agents: new Map(), chat: new Map() };
+  const tabs = { agents: new Map() };
   let statusItems = [];
 
   context.subscriptions.push(
@@ -209,19 +217,18 @@ function activate(context) {
 
   // After a window reload VS Code restores our terminal tabs but these maps
   // start empty, so fall back to matching by the name we gave the terminal.
-  function findExisting(profile, kind = 'agents') {
-    const map = tabs[kind];
+  function findExisting(profile) {
+    const map = tabs.agents;
     const tracked = map.get(profile.name);
     if (tracked) return tracked;
-    const restored = vscode.window.terminals.find((t) => t.name === terminalName(profile, kind));
+    const restored = vscode.window.terminals.find((t) => t.name === terminalName(profile));
     if (restored) map.set(profile.name, restored);
     return restored;
   }
 
-  async function openNewTab(cwd, profile, { preserveFocus = false, kind = 'agents' } = {}) {
-    const chat = kind === 'chat';
+  async function openNewTab(cwd, profile, { preserveFocus = false } = {}) {
     const terminal = vscode.window.createTerminal({
-      name: terminalName(profile, kind),
+      name: terminalName(profile),
       iconPath: iconUri,
       color: themeColorFor(profile),
       cwd,
@@ -234,33 +241,25 @@ function activate(context) {
     if (profile.configDir) {
       args.push(`CLAUDE_CONFIG_DIR=${shellEscape(expandHome(profile.configDir))}`);
     }
-    if (chat) {
-      // The mailbox server is already in the profile's config; the env var
-      // switches it to channel mode. Custom channels aren't on the
-      // research-preview allowlist, so they only load through the development
-      // flag (and `claude agents` can't take it at all, hence a plain session).
-      args.push('CLAUDE_MAILBOX_LIVE=1', 'claude', '--dangerously-load-development-channels', `server:${bridge.SERVER_NAME}`);
-    } else {
-      args.push('claude', 'agents', `--cwd=${shellEscape(cwd)}`);
-    }
+    args.push('claude', 'agents', `--cwd=${shellEscape(cwd)}`);
     if (config().get('dangerouslySkipPermissions', true)) args.push('--dangerously-skip-permissions');
     terminal.sendText(args.join(' '));
     await vscode.commands.executeCommand('workbench.action.pinEditor');
-    tabs[kind].set(profile.name, terminal);
+    tabs.agents.set(profile.name, terminal);
     return terminal;
   }
 
-  async function openOrFocus(profileArg, kind) {
+  async function openOrFocus(profileArg) {
     const profile = await resolveProfile(profileArg);
     if (!profile) return;
-    const existing = findExisting(profile, kind);
+    const existing = findExisting(profile);
     if (existing) {
       existing.show();
       return;
     }
     const cwd = await resolveCwd();
     if (!cwd) return;
-    await openNewTab(cwd, profile, { kind });
+    await openNewTab(cwd, profile);
   }
 
   async function newAgentsTab(profileArg) {
@@ -297,7 +296,7 @@ function activate(context) {
         if (choice === 'Select Mailbox') await selectMailboxCmd();
       } else if (report && !enabled && result.removed.length) {
         vscode.window.showInformationMessage(
-          `Mailboxes removed from ${result.removed.join(', ')}. Your own status lines and hooks were restored; mailbox history stays in ${bridge.ROOT}.`
+          `Mailboxes removed from ${result.removed.join(', ')}. Mailbox history stays in ${bridge.ROOT}.`
         );
       }
       rebuildStatusBar();
@@ -314,9 +313,10 @@ function activate(context) {
         modal: true,
         detail:
           `This adds to each profile's Claude config:\n${list}\n\n` +
-          '• the claude_mailbox MCP server (user scope, via `claude mcp add`)\n' +
-          '• three hooks that hand messages to a session between steps\n' +
-          "• a status line segment with the session's name and mailbox (your current status line is kept and shown first)\n\n" +
+          '• the agent-mailbox mod, as one folder: skills/agent-mailbox\n\n' +
+          'Every Claude session of these profiles then gets a name, mailbox tools and a /mailbox command, wakes up when a message arrives, ' +
+          'and shows a band above the prompt with its mailbox, account, context use and plan limits. ' +
+          'Your settings, hooks and status line are not touched.\n\n' +
           'Nothing else in your config changes, and "Claude Agents: Remove Mailboxes" undoes all of it.',
       },
       'Set Up'
@@ -330,7 +330,7 @@ function activate(context) {
   async function removeMailboxes() {
     const choice = await vscode.window.showWarningMessage(
       'Remove mailboxes from all your Claude profiles?',
-      { modal: true, detail: 'Removes the claude_mailbox MCP server, its hooks, and its status line segment, and restores your own status line. Mailboxes and their history stay on disk.' },
+      { modal: true, detail: 'Deletes the skills/agent-mailbox folder from each profile. Mailboxes and their history stay on disk.' },
       'Remove'
     );
     if (choice !== 'Remove') return;
@@ -442,27 +442,8 @@ function activate(context) {
     rebuildStatusBar();
   }
 
-  async function openLiveChat(profileArg) {
-    if (!(await ensureSetUp('Live chat'))) return;
-    const cwd = currentProject() || (await resolveCwd());
-    if (!cwd) return;
-    if (!bridge.mailboxFor(cwd)) {
-      const choice = await vscode.window.showInformationMessage(
-        `${path.basename(cwd)} isn't in a mailbox yet. Live chat needs one to receive messages.`,
-        'Create Mailbox',
-        'Select Mailbox'
-      );
-      if (choice === 'Create Mailbox') await createMailboxCmd();
-      else if (choice === 'Select Mailbox') await selectMailboxCmd();
-      if (!bridge.mailboxFor(cwd)) return;
-    }
-    await openOrFocus(profileArg, 'chat');
-  }
-
   context.subscriptions.push(
-    vscode.commands.registerCommand('claudeLauncher.openAgents', (profileArg) => openOrFocus(profileArg, 'agents')),
-
-    vscode.commands.registerCommand('claudeLauncher.openLiveChat', (profileArg) => openLiveChat(profileArg)),
+    vscode.commands.registerCommand('claudeLauncher.openAgents', (profileArg) => openOrFocus(profileArg)),
 
     vscode.commands.registerCommand('claudeLauncher.setUpMailboxes', () => setUpMailboxes()),
 
@@ -478,17 +459,12 @@ function activate(context) {
 
     vscode.commands.registerCommand('claudeLauncher.openAgentsForProfile', async () => {
       const profile = await pickAnyProfile('Open agents for which profile?');
-      if (profile) await openOrFocus(profile, 'agents');
+      if (profile) await openOrFocus(profile);
     }),
 
     vscode.commands.registerCommand('claudeLauncher.newAgentsTabForProfile', async () => {
       const profile = await pickAnyProfile('New agents tab for which profile?');
       if (profile) await newAgentsTab(profile);
-    }),
-
-    vscode.commands.registerCommand('claudeLauncher.openLiveChatForProfile', async () => {
-      const profile = await pickAnyProfile('Open live chat for which profile?');
-      if (profile) await openLiveChat(profile);
     }),
 
     vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles()),
@@ -596,12 +572,10 @@ function activate(context) {
       if (name === undefined || name.trim() === profile.name) return;
       const oldName = profile.name;
       profile.name = name.trim();
-      for (const kind of Object.keys(tabs)) {
-        const tracked = findExisting({ name: oldName }, kind);
-        if (tracked) {
-          tabs[kind].delete(oldName);
-          tabs[kind].set(profile.name, tracked);
-        }
+      const tracked = findExisting({ name: oldName });
+      if (tracked) {
+        tabs.agents.delete(oldName);
+        tabs.agents.set(profile.name, tracked);
       }
       await saveProfiles(profiles);
       await renameDefaultProfile(oldName, profile.name);
@@ -641,10 +615,17 @@ function activate(context) {
       item.color = themeColorFor(profile);
       const profileArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
       const tooltip = new vscode.MarkdownString();
+      tooltip.supportThemeIcons = true;
       tooltip.appendMarkdown('**Claude Agents — ');
       tooltip.appendText(profile.name);
+      tooltip.appendMarkdown('**');
+      const signedIn = accountLabel(profile);
+      if (signedIn) {
+        tooltip.appendMarkdown('  \n$(account) ');
+        tooltip.appendText(signedIn);
+      }
       tooltip.appendMarkdown(
-        `**\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${profileArgs}) · ` +
+        `\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${profileArgs}) · ` +
           (othersHidden ? '[Other profile…](command:claudeLauncher.openAgentsForProfile) · ' : '') +
           '[Project profile](command:claudeLauncher.setProjectProfile) · ' +
           '[Manage profiles](command:claudeLauncher.manageProfiles)'
@@ -654,7 +635,6 @@ function activate(context) {
         tooltip.appendText(box.name);
         tooltip.appendMarkdown(
           `** · ${pluralize(bridge.livePeers(box.id).length, 'active session')} · ` +
-            `[Live chat](command:claudeLauncher.openLiveChat?${profileArgs}) · ` +
             '[Switch](command:claudeLauncher.selectMailbox) · [All mailboxes](command:claudeLauncher.listMailboxes)'
         );
       } else if (enabled && project) {
@@ -670,7 +650,6 @@ function activate(context) {
           'claudeLauncher.openAgentsForProfile',
           'claudeLauncher.setProjectProfile',
           'claudeLauncher.manageProfiles',
-          'claudeLauncher.openLiveChat',
           'claudeLauncher.selectMailbox',
           'claudeLauncher.listMailboxes',
           'claudeLauncher.createMailbox',
