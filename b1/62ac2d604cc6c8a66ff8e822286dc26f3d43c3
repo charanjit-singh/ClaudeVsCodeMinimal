@@ -1,0 +1,63 @@
+package.json
+  s_bfc161c020507d::t_aa2943996def02 4,170
+CHANGELOG.md
+  s_bfc161c020507d::t_477ec91704a4ff 9-14,17-22,24,26-31,39-40
+bridge/bridge.js
+  s_bfc161c020507d::t_c9b5ccbae27168 2-11,72,81-82,85-87,90-91,94-97,100,110-112,115-117,120-123,126-131,138-145,148-149,151,161,170,223,248,252-253,256,258,261-262,267-269,272,276,279,304-307,309,318-319,341,345,350,353,357-372,374,376-385,387,389-396,398-404,407-420,424-427,429,432-485,487-488,490-491,494-497,502-505,512,521
+  s_bfc161c020507d::t_1762cf0d9a32f3 133-137
+mod/agent-mailbox/.claude-plugin/plugin.json
+  s_bfc161c020507d::t_2b33dcec0b25ca 1-7
+mod/agent-mailbox/tsconfig.json
+  s_bfc161c020507d::t_5036749ef07e1a 1-3
+mailboxes.js
+  s_bfc161c020507d::t_4e35b7248c043d 2-5,14,27-28,31-36,39-43,46-48,51-54,57-68,71-78,84-87,94-97,116,127,138-140,143,150,155-159,161-162,171,183
+README.md
+  s_bfc161c020507d::t_b6180fb4651fe3 56,59-63,131-133,144-150,152-154,212,258-260
+extension.js
+  s_bfc161c020507d::t_aa2943996def02 618
+  s_bfc161c020507d::t_f6d4225792dc83 201-202,205,220-221,224,229,231,248,252,255,262,299,333,446,462,575-578,621-626,628
+  s_bfc161c020507d::t_1bd71add3564cf 45-54,244,316-319
+mod/agent-mailbox/types/index.d.ts
+  s_bfc161c020507d::t_2b33dcec0b25ca 1-26
+mod/agent-mailbox/tests/register.test.tsx
+  s_bfc161c020507d::t_cb2862e774b0ef 22,48,63,109,112,117
+  s_bfc161c020507d::t_53e797bccdb256 47,73,97,110,127
+  s_bfc161c020507d::t_c8e264dabb5022 1-15,18-21,23,25-44,46,55-56,58-62,64-72,74-96,98-106,108,111,113-116,118-119,122-126,128-133
+  s_bfc161c020507d::t_1e6c0d52080659 16-17,53-54
+  s_bfc161c020507d::t_0a474ff1ea0012 24,45
+  s_bfc161c020507d::t_176c490e7a93f2 49-52
+  s_bfc161c020507d::t_d2731132d6f87e 57,107,120-121
+mod/agent-mailbox/hooks/register.tsx
+  s_bfc161c020507d::t_aa25898a8c89a6 31,43,57,65,79,92,106,134,150,205,235,240
+  s_bfc161c020507d::t_9704ce2201d6df 2,110-111
+  s_bfc161c020507d::t_6842afd7c8ee22 32-34
+  s_bfc161c020507d::t_2b33dcec0b25ca 1,3-30,35-42,44-56,58-64,66-78,80-91,93-105,107-109,112-133,135-149,151-204,206-234,236-239,241-365
+.vscodeignore
+  s_bfc161c020507d::t_aa2943996def02 10-11
+docs/profile-communication.md
+  s_bfc161c020507d::t_261749925ddc1e 3-4,6-7,10-14,20-35,37-42,44-55,64-69,71-72,76,78,86,88,90,92,94-97,99,101-105,114-117,119,122,130-133,138-139,147-150
+  s_bfc161c020507d::t_5dc3d0b19569e8 123-124
+mod/agent-mailbox/hooks/hooks.json
+  s_bfc161c020507d::t_4bf61da61b4e26 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b162ac2d604cc6c8a66ff8e822286dc26f3d43c3",
+  "prompts": {},
+  "humans": {
+    "h_08eca7ecc4bc75": {
+      "author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bfc161c020507d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5b6534f3-1074-406f-ab75-12eb7426d222",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charanjit Singh <charanjitdotsingh@gmail.com>"
+    }
+  }
+}
