@@ -290,10 +290,12 @@ function newMessageFile(dir) {
   return path.join(ensureDir(dir), `${Date.now()}-${crypto.randomBytes(4).toString('hex')}.json`);
 }
 
+// Keeps each file's name (its send time) so moved mail stays in order.
 function moveAll(fromDir, toDir) {
   for (const name of jsonFiles(fromDir)) {
+    const target = path.join(ensureDir(toDir), name);
     try {
-      fs.renameSync(path.join(fromDir, name), newMessageFile(toDir));
+      fs.renameSync(path.join(fromDir, name), fs.existsSync(target) ? newMessageFile(toDir) : target);
     } catch {}
   }
 }

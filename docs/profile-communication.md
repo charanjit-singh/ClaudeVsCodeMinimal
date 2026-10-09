@@ -53,6 +53,8 @@ Work · dev@acme.com (Acme) │ context 42% of 1M · 5h 26% · 7d 92% · $1.50
 `/mailbox hide` hides the band and `/mailbox show` brings it back.
 
 The VS Code status bar also shows which account each profile is signed in with: hover a profile's button.
+If [claude-swap](https://github.com/realiti4/claude-swap) is installed, the tooltip adds that account's
+5-hour and 7-day usage, including for accounts with no session running.
 
 ---
 

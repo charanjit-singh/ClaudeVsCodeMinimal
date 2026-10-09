@@ -59,6 +59,8 @@ one. A message **wakes up** the agent it's for, even if it was sitting idle.
 **📊 Know which account you're burning.**
 A band above every prompt shows the session's profile and signed-in account, how full its context is,
 your plan's 5-hour and 7-day limits (yellow at 70%, red at 90%), and what the session has cost.
+Using [claude-swap](https://github.com/realiti4/claude-swap)? Each profile's button also shows its
+account's usage, and turns amber past 90%, so you can see which account has room before you start.
 
 ![Kavya (Work) asks Meera (Personal) a question; Meera is woken by the message and answers. Each has a band above its prompt with mailbox, account, context, and plan limits.](readme-assets/profile-communication.png)
 <sub>Illustration</sub>
@@ -210,6 +212,7 @@ Worth knowing:
 | Let agents on different accounts message each other | **Claude Agents: Set Up Mailboxes**, then **Create Mailbox for This Project** ([guide](docs/profile-communication.md)) |
 | See every mailbox and who's in it | **Claude Agents: List Mailboxes** |
 | See a session's account, context, and plan limits | The band above its prompt (`/mailbox hide` / `show`) |
+| See usage for every account, even idle ones | Install [claude-swap](https://github.com/realiti4/claude-swap), then hover a button or run **Claude Agents: Show Account Usage** |
 | Have agents open when you open a project | Turn on `claudeLauncher.openOnStartup` |
 | Approve each action yourself | Set `claudeLauncher.dangerouslySkipPermissions` to `false` |
 | Add an account, or change a color | **Claude Agents: Manage Profiles**, or hover a button → **Manage profiles** |
@@ -225,11 +228,28 @@ Shortcut already taken? Rebind it in **Keyboard Shortcuts** (`⌘K ⌘S`) by sea
 | `claudeLauncher.profiles` | `[{ "name": "Claude" }]` | One status bar button per entry. Optional `configDir` and `color` per profile. Easiest to edit with **Claude Agents: Manage Profiles**. |
 | `claudeLauncher.defaultProfile` | `""` | Set per workspace, easiest with **Claude Agents: Set Project Profile**. Shows only this profile's button, and shortcuts use it without asking. |
 | `claudeLauncher.mailboxes` | `false` | User-level. Sets up mailboxes in every profile's Claude config; turning it off removes them. Use **Set Up Mailboxes** / **Remove Mailboxes**. See the [guide](docs/profile-communication.md). |
+| `claudeLauncher.claudeSwapUsage` | `true` | When claude-swap is installed, shows each account's usage on its profile's button. Read-only: it runs `cswap list --json` every few minutes and never switches accounts. |
 | `claudeLauncher.openOnStartup` | `false` | Opens the agents tab when a window opens. Works in single-folder workspaces when the profile is clear: your `defaultProfile`, or your only profile. |
 | `claudeLauncher.dangerouslySkipPermissions` | `true` | Launches with `--dangerously-skip-permissions`. Turn it off if you want Claude to ask before acting. |
 
 > ⚠️ With permissions skipped, agents can edit files and run commands without asking first.
 > That's great for momentum, but only use it on projects where you're comfortable with that.
+
+---
+
+## Works with claude-swap
+
+[claude-swap](https://github.com/realiti4/claude-swap) keeps track of several Claude accounts and their plan
+usage. If it's installed, Claude Agents picks it up automatically, with nothing to configure:
+
+- **Hover a profile's button** to see that account's 5-hour and 7-day usage, with reset times.
+- **The button turns amber** once either window passes 90%.
+- **Claude Agents: Show Account Usage** lists every account claude-swap knows about, including ones with no
+  profile here.
+
+Claude Agents only *reads* from claude-swap: it runs `cswap list --json`, matches accounts to profiles by
+their signed-in email, and never switches accounts or touches credentials. It isn't required. Turn it off
+with `claudeLauncher.claudeSwapUsage`.
 
 ---
 

@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.0]
+
+### Added
+- **Works with [claude-swap](https://github.com/realiti4/claude-swap)**, if it's installed. Each profile's
+  tooltip shows its account's 5-hour and 7-day usage with reset times, the button turns amber past 90%,
+  and **Claude Agents: Show Account Usage** lists every account, including idle ones with no profile.
+  Accounts are matched to profiles by signed-in email.
+  - Read-only: it runs `cswap list --json` every 5 minutes (and when the window regains focus), and never
+    switches accounts or touches credentials.
+  - Optional: nothing changes when claude-swap isn't installed. Turn it off with
+    `claudeLauncher.claudeSwapUsage`.
+
+### Fixed
+- Mailboxes: unread messages handed back to a profile's queue (when a session ends or moves mailbox) now
+  keep the order they were sent in.
+
 ## [0.8.0]
 
 ### Added

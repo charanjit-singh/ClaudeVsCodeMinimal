@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const mailboxes = require('./mailboxes.js');
 const bridge = require('./bridge/bridge.js');
+const claudeSwap = require('./claudeswap.js');
 
 const DEFAULT_PROFILES = [{ name: 'Claude' }];
 
@@ -47,8 +48,12 @@ function terminalName(profile) {
 }
 
 // Which account a profile is signed in with, from its own Claude config.
+function profileAccount(profile) {
+  return bridge.account(profile.configDir ? expandHome(profile.configDir) : undefined);
+}
+
 function accountLabel(profile) {
-  const a = bridge.account(profile.configDir ? expandHome(profile.configDir) : undefined);
+  const a = profileAccount(profile);
   if (!a) return undefined;
   if (a.email) return a.org ? `${a.email} (${a.org})` : a.email;
   return a.kind;
@@ -204,6 +209,26 @@ function activate(context) {
   // command, so "new tab" is a separate command.
   const tabs = { agents: new Map() };
   let statusItems = [];
+
+  // claude-swap, when installed: every account's plan usage, read-only.
+  let swapAccounts;
+  let swapReadAt = 0;
+  let swapReading = false;
+  async function refreshSwap({ force = false } = {}) {
+    if (swapReading || config().get('claudeSwapUsage', true) !== true) return;
+    if (!force && Date.now() - swapReadAt < 60000) return;
+    swapReading = true;
+    try {
+      const accounts = await claudeSwap.readAccounts();
+      swapReadAt = Date.now();
+      if (accounts || swapAccounts) {
+        swapAccounts = accounts;
+        rebuildStatusBar();
+      }
+    } finally {
+      swapReading = false;
+    }
+  }
 
   context.subscriptions.push(
     vscode.window.onDidCloseTerminal((closed) => {
@@ -469,6 +494,8 @@ function activate(context) {
 
     vscode.commands.registerCommand('claudeLauncher.manageProfiles', () => manageProfiles()),
 
+    vscode.commands.registerCommand('claudeLauncher.showAccountUsage', () => showAccountUsage()),
+
     vscode.commands.registerCommand('claudeLauncher.setProjectProfile', () => setProjectProfile())
   );
 
@@ -596,6 +623,38 @@ function activate(context) {
     }
   }
 
+  async function showAccountUsage() {
+    if (!claudeSwap.findCswap()) {
+      const choice = await vscode.window.showInformationMessage(
+        'Account usage across all your Claude accounts comes from claude-swap, which isn\'t installed. Claude Agents only reads it; it never switches accounts.',
+        'About claude-swap'
+      );
+      if (choice) vscode.env.openExternal(vscode.Uri.parse('https://github.com/realiti4/claude-swap'));
+      return;
+    }
+    await refreshSwap({ force: true });
+    if (!swapAccounts || !swapAccounts.length) {
+      vscode.window.showInformationMessage('claude-swap has no accounts yet, or its usage could not be read. Run "cswap list" in a terminal to check.');
+      return;
+    }
+    const byEmail = new Map();
+    for (const p of getProfiles()) {
+      const match = claudeSwap.matchAccount(swapAccounts, profileAccount(p));
+      if (match) byEmail.set(match.number, p.name);
+    }
+    await vscode.window.showQuickPick(
+      swapAccounts.map((a) => ({
+        label: `${a.alias || a.email || `Account ${a.number}`}`,
+        description: [byEmail.has(a.number) ? `profile ${byEmail.get(a.number)}` : '', a.active ? 'default login' : '', a.disabled ? 'held out of rotation' : '']
+          .filter(Boolean)
+          .join(' · '),
+        detail: a.status === 'ok' || a.isStale ? claudeSwap.describe(a) : `usage ${a.status.replace(/_/g, ' ')}`,
+        iconPath: new vscode.ThemeIcon(claudeSwap.peak(a) >= 90 ? 'warning' : 'account'),
+      })),
+      { placeHolder: 'Usage by account, from claude-swap (read-only)', matchOnDetail: true }
+    );
+  }
+
   // Right alignment + low priority pushes these to the far right edge of the
   // status bar, next to the built-in notification bell — VS Code has no API
   // to dock beside a specific native item, this is the closest equivalent.
@@ -613,6 +672,10 @@ function activate(context) {
       // is the closest built-in stand-in.
       item.text = `$(sparkle) ${profile.name}${box ? ' $(comment-discussion)' : ''}`;
       item.color = themeColorFor(profile);
+      const swapped = swapAccounts && claudeSwap.matchAccount(swapAccounts, profileAccount(profile));
+      if (swapped && claudeSwap.peak(swapped) >= 90) {
+        item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+      }
       const profileArgs = encodeURIComponent(JSON.stringify([{ name: profile.name }]));
       const tooltip = new vscode.MarkdownString();
       tooltip.supportThemeIcons = true;
@@ -623,6 +686,11 @@ function activate(context) {
       if (signedIn) {
         tooltip.appendMarkdown('  \n$(account) ');
         tooltip.appendText(signedIn);
+      }
+      if (swapped) {
+        tooltip.appendMarkdown('  \n$(pulse) ');
+        tooltip.appendText(`${claudeSwap.describe(swapped)}${swapped.disabled ? ' · held out of rotation' : ''}`);
+        tooltip.appendMarkdown(' · [All accounts](command:claudeLauncher.showAccountUsage)');
       }
       tooltip.appendMarkdown(
         `\n\nClick to open or focus · [New tab](command:claudeLauncher.newAgentsTab?${profileArgs}) · ` +
@@ -654,6 +722,7 @@ function activate(context) {
           'claudeLauncher.listMailboxes',
           'claudeLauncher.createMailbox',
           'claudeLauncher.setUpMailboxes',
+          'claudeLauncher.showAccountUsage',
         ],
       };
       item.tooltip = tooltip;
@@ -687,9 +756,16 @@ function activate(context) {
     watcher.onDidCreate(() => rebuildStatusBar()),
     watcher.onDidDelete(() => rebuildStatusBar()),
     vscode.window.onDidChangeWindowState((state) => {
-      if (state.focused) rebuildStatusBar();
+      if (!state.focused) return;
+      rebuildStatusBar();
+      refreshSwap();
     })
   );
+
+  const swapTimer = setInterval(() => refreshSwap({ force: true }), 5 * 60000);
+  if (swapTimer.unref) swapTimer.unref();
+  context.subscriptions.push({ dispose: () => clearInterval(swapTimer) });
+  refreshSwap({ force: true });
 
   // 0.8.0 (never released) kept a launch-time bridge here; mailboxes replace it.
   fs.rm(path.join(os.homedir(), '.claude-agents-bridge'), { recursive: true, force: true }, () => {});

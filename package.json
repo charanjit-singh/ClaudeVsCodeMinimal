@@ -2,7 +2,7 @@
   "name": "claude-launcher-minimal",
   "displayName": "Claude Agents",
   "description": "One status bar button per Claude profile opens `claude agents` for your project in a pinned tab. Mailboxes let your agents message and wake each other, even across profiles.",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "charanjit-singh",
   "icon": "media/icon.png",
   "repository": {
@@ -93,6 +93,12 @@
         "icon": "$(pinned)"
       },
       {
+        "command": "claudeLauncher.showAccountUsage",
+        "title": "Show Account Usage",
+        "category": "Claude Agents",
+        "icon": "$(pulse)"
+      },
+      {
         "command": "claudeLauncher.manageProfiles",
         "title": "Manage Profiles",
         "category": "Claude Agents",
@@ -173,6 +179,12 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Open the agents tab automatically when a window opens. Needs a single-folder workspace and a profile it can pick without asking: `#claudeLauncher.defaultProfile#`, or your only profile."
+        },
+        "claudeLauncher.claudeSwapUsage": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "markdownDescription": "When [claude-swap](https://github.com/realiti4/claude-swap) is installed, show each account's 5-hour and 7-day plan usage in its profile's tooltip, and turn a button the warning color past 90%. Read-only: Claude Agents runs `cswap list --json` every few minutes and never switches accounts. **[Show account usage](command:claudeLauncher.showAccountUsage)**"
         }
       }
     }
